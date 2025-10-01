@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salta-Cajas - Mini Arcade</title>
+    <link rel="stylesheet" href="../style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            width: 100%;
+            max-width: 500px;
+        }
+        
+        .game-header {
+            margin-bottom: 20px;
+            text-align: center;
+            width: 100%;
+        }
+        
+        .game-title {
+            color: #e94560;
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            text-shadow: 3px 3px 0 #000;
+        }
+        
+        .game-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+            width: 100%;
+        }
+        
+        .stat {
+            background: linear-gradient(145deg, #16213e, #0f3460);
+            padding: 10px;
+            border-radius: 8px;
+            border: 2px solid #e94560;
+            font-size: 0.7rem;
+            text-align: center;
+        }
+        
+        .game-board {
+            position: relative;
+            margin: 15px 0;
+            width: 100%;
+        }
+        
+        canvas {
+            border: 4px solid #5337d1;
+            border-radius: 10px;
+            background: #0f3460;
+            box-shadow: 0 0 20px rgba(76, 209, 55, 0.4);
+            display: block;
+            width: 100%;
+            image-rendering: pixelated;
+        }
+        
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+            color: #a9b7c6;
+            font-size: 0.8rem;
+            width: 100%;
+        }
+        
+        .controls-info {
+            background: rgba(15, 52, 96, 0.7);
+            padding: 12px;
+            border-radius: 8px;
+            border: 2px solid #533483;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            background: linear-gradient(145deg, #e94560, #c2334c);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            padding: 12px 20px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 0 #8a2a3a;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 #8a2a3a;
+        }
+        
+        .btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 3px 0 #8a2a3a;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(145deg, #533483, #412a68);
+            box-shadow: 0 4px 0 #2d1c4d;
+        }
+        
+        .game-over, .level-complete {
+            
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(145deg, #16213e, #0f3460);
+            padding: 30px;
+            border-radius: 15px;
+            border: 4px solid #e94560;
+            text-align: center;
+            z-index: 100;
+            box-shadow: 0 0 40px rgba(233, 69, 96, 0.6);
+            width: 90%;
+            max-width: 350px;
+        }
+        
+        .level-complete {
+            border: 4px solid #4cd137;
+        }
+        
+        .game-over h2, .level-complete h2 {
+            color: #e94560;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 0 #000;
+        }
+        
+        .level-complete h2 {
+            color: #4cd137;
+        }
+        
+        .game-over p, .level-complete p {
+            margin: 10px 0;
+            font-size: 0.8rem;
+            line-height: 1.5;
+        }
+        
+        .stars-display {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px 0;
+        }
+        
+        .star {
+            font-size: 1.5rem;
+            filter: grayscale(1);
+        }
+        
+        .star.active {
+            filter: grayscale(0);
+            text-shadow: 0 0 8px gold;
+        }
+        
+        .mobile-controls {
+            display: none;
+            margin-top: 15px;
+            gap: 8px;
+            flex-direction: column;
+            width: 100%;
+        }
+        
+        .direction-row {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .mobile-btn {
+            background: rgba(255, 100, 108, 0.9);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #8c2424;
+            font-family: 'Press Start 2P', cursive;
+        }
+        
+        .progress-container {
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 15px;
+            background: #16213e;
+            border-radius: 8px;
+            border: 2px solid #533483;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4cd137, #44bd32);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .objective {
+            font-size: 0.7rem;
+            color: #a9b7c6;
+            margin-top: 5px;
+        }
+        .paused-screen {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(145deg, #16213e, #0f3460);
+    padding: 30px;
+    border-radius: 15px;
+    border: 4px solid #45a0c7;
+    text-align: center;
+    z-index: 100;
+    box-shadow: 0 0 40px rgba(76, 209, 55, 0.6);
+    width: 90%;
+    max-width: 300px;
+}
+
+.paused-screen h2 {
+    color: #006eeb;
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+    text-shadow: 2px 2px 0 #000;
+}
+
+.paused-screen p {
+    margin: 10px 0;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: #a9b7c6;
+}
+
+        /* Estilos específicos para móviles */
+        @media (max-width: 768px) {
+            .game-container {
+                padding: 10px;
+            }
+            
+            .game-title {
+                font-size: 1.4rem;
+            }
+            
+            .game-stats {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+            
+            .stat {
+                padding: 8px;
+                font-size: 0.6rem;
+            }
+            
+            canvas {
+                height: 400px;
+            }
+            
+            .mobile-controls {
+                display: flex;
+            }
+            
+            .buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 200px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .game-title {
+                font-size: 1.2rem;
+            }
+            
+            canvas {
+                height: 350px;
+            }
+            
+            .mobile-btn {
+                width: 45px;
+                height: 45px;
+                font-size: 1rem;
+            }
+        }
+
+        /* Para escritorio */
+        @media (min-width: 769px) {
+            canvas {
+                height: 500px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1 class="game-title">🦸 SALTA-CAJAS</h1>
+            <div class="game-stats">
+                <div class="stat">NIVEL: <span id="level">1</span></div>
+                <div class="stat">TIEMPO: <span id="time">60</span>s</div>
+                <div class="stat">CAJAS: <span id="boxes">0</span></div>
+                <div class="stat">MEJOR: <span id="highscore">0</span></div>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="objective" id="objective">SOBREVIVE 60 SEGUNDOS</div>
+            </div>
+        </div>
+        
+        <div class="game-board">
+            <canvas id="gameCanvas" width="400" height="500"></canvas>
+        </div>
+        
+        <!-- Controles móviles -->
+        <div class="mobile-controls">
+            <div class="direction-row">
+                <button class="mobile-btn" id="leftBtn">←</button>
+                <button class="mobile-btn" id="jumpBtn">↑</button>
+                <button class="mobile-btn" id="rightBtn">→</button>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="controls-info">
+                <p>← → PARA MOVERTE</p>
+                <p>ESPACIO PARA SALTAR</p>
+                <p>ESQUIVA LAS CAJAS QUE CAEN</p>
+                <p>SOBREVIVE EL TIEMPO LIMITE</p>
+            </div>
+            <div class="buttons">
+                <button class="btn" id="startBtn">INICIAR JUEGO</button>
+                <button class="btn btn-secondary" id="menuBtn">VOLVER AL MENÚ</button>
+            </div>
+        </div>
+        
+        <div class="game-over" id="gameOver">
+            <h2>¡GAME OVER!</h2>
+            <p>TE CAYÓ UNA CAJA</p>
+            <p>NIVEL: <span id="finalLevel">1</span></p>
+            <p>TIEMPO: <span id="finalTime">0</span>s</p>
+            <div class="stars-display">
+                <span class="star">⭐</span>
+                <span class="star">⭐</span>
+                <span class="star">⭐</span>
+            </div>
+            <p>ESTRELLAS: <span id="earnedStars">0</span></p>
+            <button class="btn" id="playAgainBtn">JUGAR DE NUEVO</button>
+        </div>
+        
+        <div class="level-complete" id="levelComplete">
+            <h2>¡NIVEL COMPLETADO!</h2>
+            <p>FELICIDADES, SOBREVIVISTE</p>
+            <p>SIGUIENTE NIVEL: <span id="nextLevel">2</span></p>
+            <div class="stars-display">
+                <span class="star">⭐</span>
+                <span class="star">⭐</span>
+                <span class="star">⭐</span>
+            </div>
+            <button class="btn" id="nextLevelBtn">SIGUIENTE NIVEL</button>
+        </div>
+    </div>
+   
+    <div class="paused-screen" id="pausedScreen">
+    <h2>⏸️ JUEGO PAUSADO</h2>
+    <p>Presiona ESPACIO para reanudar</p>
+    <button class="btn" id="resumeBtn">REANUDAR JUEGO</button>
+</div>
+    <script src="jump-boxes.js"></script>
+</body>
+</html>

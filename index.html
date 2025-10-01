@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Arcade Pixelado</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 Mini Arcade </h1>
+            <div class="score-display">
+                <div class="total-score">
+                    <span>Puntos Totales:</span>
+                    <span id="totalPoints">0</span>
+                </div>
+                <div class="stars">
+                    <span>⭐</span>
+                    <span id="totalStars">0</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="games-grid">
+            <div class="game-card" data-game="snake">
+                <div class="game-icon">🐍</div>
+                <h3>Snake</h3>
+                <div class="game-info">
+                    <div class="high-score">Mejor: <span id="snake-highscore">0</span></div>
+                    <div class="stars-earned">⭐ <span id="snake-stars">0</span></div>
+                </div>
+            </div>
+
+            <div class="game-card" data-game="jump-boxes">
+    <div class="game-icon">🦸</div>
+    <h3>Salta-Cajas</h3>
+    <div class="game-info">
+        <div class="high-score">Mejor Nvl: <span id="jumpboxes-highscore">0</span></div>
+        <div class="stars-earned">⭐ <span id="jumpboxes-stars">0</span></div>
+    </div>
+</div>
+            
+   
+<div class="game-card coming-soon">
+                <div class="game-icon">👻</div>
+                <h3>Laberinto Fantasma</h3>
+                <h3>EN MANTENIMIENTO</h3>
+                <div class="game-info">
+                    
+                    <div class="high-score">Esperar pacientemente</div>
+                </div>
+            </div>
+            
+            <!-- Repite la estructura anterior para los otros juegos -->
+        </main>
+
+            <div class="game-card coming-soon">
+                <div class="game-icon">❓</div>
+                <h3>Próximamente</h3>
+                <h3>P1x3l Runn3r</h3>
+                <div class="game-info">
+                    
+                    <div class="high-score">En desarrollo</div>
+                </div>
+            </div>
+            
+            <!-- Repite la estructura anterior para los otros juegos -->
+        </main>
+
+        <footer>
+            <p>Hecho con ❤️ para los amantes de los juegos retro</p>
+            <div class="high-score">By:Rufles_69 / ig: rufles_69</div>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

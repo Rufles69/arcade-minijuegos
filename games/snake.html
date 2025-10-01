@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake - Mini Arcade</title>
+    <link rel="stylesheet" href="../style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .game-header {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .game-title {
+            color: #e94560;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-shadow: 4px 4px 0 #000;
+            letter-spacing: 2px;
+        }
+        
+        .game-stats {
+            display: flex;
+            gap: 25px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .stat {
+            background: linear-gradient(145deg, #16213e, #0f3460);
+            padding: 15px 25px;
+            border-radius: 12px;
+            border: 3px solid #e94560;
+            box-shadow: 0 6px 0 #8a2a3a;
+        }
+        
+        .game-board {
+            position: relative;
+            margin: 20px 0;
+        }
+        
+        canvas {
+            border: 6px solid #45e98f;
+            border-radius: 12px;
+            background: #0f3460;
+            box-shadow: 0 0 30px rgba(118, 255, 191, 0.4);
+            display: block;
+            image-rendering: pixelated;
+        }
+        
+        .controls {
+            margin-top: 30px;
+            text-align: center;
+            color: #a9b7c6;
+            font-size: 0.9rem;
+            max-width: 500px;
+            line-height: 1.6;
+        }
+        
+        .controls-info {
+            background: rgba(15, 52, 96, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #533483;
+            margin-bottom: 20px;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            background: linear-gradient(145deg, #e94560, #c2334c);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            padding: 15px 30px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 0 #8a2a3a;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 0 #8a2a3a;
+        }
+        
+        .btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 3px 0 #8a2a3a;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(145deg, #533483, #412a68);
+            box-shadow: 0 6px 0 #2d1c4d;
+        }
+        
+        .btn-secondary:hover {
+            box-shadow: 0 8px 0 #2d1c4d;
+        }
+        
+        .btn-secondary:active {
+            box-shadow: 0 3px 0 #2d1c4d;
+        }
+        
+        .game-over, .paused-screen {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(145deg, #16213e, #0f3460);
+            padding: 40px;
+            border-radius: 20px;
+            border: 4px solid #e94560;
+            text-align: center;
+            z-index: 100;
+            box-shadow: 0 0 50px rgba(233, 69, 96, 0.6);
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        .game-over h2, .paused-screen h2 {
+            color: #e94560;
+            font-size: 2rem;
+            margin-bottom: 20px;
+            text-shadow: 3px 3px 0 #000;
+        }
+        
+        .game-over p, .paused-screen p {
+            margin: 15px 0;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        
+        .stars-display {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .star {
+            font-size: 2rem;
+            filter: grayscale(1);
+        }
+        
+        .star.active {
+            filter: grayscale(0);
+            text-shadow: 0 0 10px gold;
+        }
+        
+        .mobile-controls {
+            display: none;
+            margin-top: 20px;
+            gap: 10px;
+            flex-direction: column;
+        }
+        
+        .direction-row {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .mobile-btn {
+            background: rgba(233, 69, 96, 0.8);
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #8a2a3a;
+        }
+        
+        @media (max-width: 768px) {
+            .game-title {
+                font-size: 1.8rem;
+            }
+            
+            .game-stats {
+                gap: 15px;
+            }
+            
+            .stat {
+                padding: 10px 15px;
+                font-size: 0.7rem;
+            }
+            
+            canvas {
+                width: 300px;
+                height: 300px;
+            }
+            
+            .mobile-controls {
+                display: flex;
+            }
+            
+            .buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 200px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .game-title {
+                font-size: 1.5rem;
+            }
+            
+            canvas {
+                width: 280px;
+                height: 280px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1 class="game-title">🐍 SNAKE RETRO</h1>
+            <div class="game-stats">
+                <div class="stat">PUNTUACIÓN: <span id="score">0</span></div>
+                <div class="stat">NIVEL: <span id="level">1</span></div>
+                <div class="stat">MEJOR: <span id="highscore">0</span></div>
+                <div class="stat">ESTADO: <span id="gameState">PRESIONA UNA FLECHA</span></div>
+            </div>
+        </div>
+        
+        <div class="game-board">
+            <canvas id="gameCanvas" width="400" height="400"></canvas>
+        </div>
+        
+        <!-- Controles móviles (solo visibles en móvil) -->
+        <div class="mobile-controls">
+            <div class="direction-row">
+                <button class="mobile-btn" data-direction="up">↑</button>
+            </div>
+            <div class="direction-row">
+                <button class="mobile-btn" data-direction="left">←</button>
+                <button class="mobile-btn" data-direction="down">↓</button>
+                <button class="mobile-btn" data-direction="right">→</button>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="controls-info">
+                <p>PRESIONA CUALQUIER FLECHA PARA INICIAR</p>
+                <p>↑ ↓ ← → PARA MOVER LA SERPIENTE</p>
+                <p>ESPACIO PARA PAUSAR/REANUDAR</p>
+                <p>COME LA COMIDA ROJA PARA CRECER</p>
+            </div>
+            <div class="buttons">
+                <button class="btn" id="restartBtn">REINICIAR JUEGO</button>
+                <button class="btn btn-secondary" id="menuBtn">VOLVER AL MENÚ</button>
+            </div>
+        </div>
+        
+        <div class="game-over" id="gameOver">
+            <h2>¡GAME OVER!</h2>
+            <p>PUNTUACIÓN FINAL: <span id="finalScore">0</span></p>
+            <div class="stars-display">
+                <span class="star">⭐</span>
+                <span class="star">⭐</span>
+                <span class="star">⭐</span>
+            </div>
+            <p>ESTRELLAS GANADAS: <span id="earnedStars">0</span></p>
+            <button class="btn" id="playAgainBtn">JUGAR DE NUEVO</button>
+        </div>
+        
+        <div class="paused-screen" id="pausedScreen">
+            <h2>⏸️ JUEGO PAUSADO</h2>
+            <p>Presiona ESPACIO para reanudar</p>
+            <button class="btn" id="resumeBtn">REANUDAR JUEGO</button>
+        </div>
+    </div>
+
+    <script src="snake.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+   <div class="game-card" data-game="">
+    <div class="game-icon">👻</div>
+    <h3>Laberinto Fantasma</h3>
+    <div class="game-info">
+        <div class="high-score">Mejor Nvl: <span id="ghostmaze-highscore">0</span></div>
+        <div class="stars-earned">⭐ <span id="ghostmaze-stars">0</span></div>
+        <div class="high-score">En Mantenimietno</div>
+    </div>
+</div>
+
+git add .
+git commit -m "nueva versión"
+git push
