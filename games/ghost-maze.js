@@ -2140,20 +2140,11 @@ function drawHUD() {
     ctx.font = 'bold 12px Arial';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-    
-    // Nivel
-    ctx.fillText(`NIVEL ${game.level}`, 10, 10);
+
     
     // Llaves
     ctx.fillText(`LLAVES: ${game.keysCollected}/${game.keysRequired}`, 10, 27);
-    
-    // Fantasmas
-    ctx.fillText(`FANTASMAS: ${game.ghosts.length}`, canvas.width/2 - 50, 10);
-    
-    // Tiempo
-    ctx.textAlign = 'right';
-    ctx.fillText(`TIEMPO: ${Math.ceil(game.timeLeft)}`, canvas.width - 10, 10);
-    
+
     // Mostrar temporizador del modo cazafantasmas (NUEVO)
     if (game.ghostKillMode) {
         ctx.fillStyle = 'rgba(231, 76, 60, 0.8)';
