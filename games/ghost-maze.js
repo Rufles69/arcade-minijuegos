@@ -536,7 +536,7 @@ function canMoveInDirection(direction) {
     // Calcular posición futura basada en la dirección
     switch(direction) {
         case 0: // right
-            testX += radius + 1;
+            testX += radius + 2;
             break;
         case 1: // down
             testY += radius + 1;
