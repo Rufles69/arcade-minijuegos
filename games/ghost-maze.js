@@ -1,4 +1,4 @@
-// ghost-maze.js - Juego Pac-Man estilo (FANTASMAS COMPLETAMENTE CORREGIDOS)
+// ghost-maze.js - Juego Pac-Man estilo (HITBOXES CORREGIDAS)
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -32,9 +32,10 @@ let pacman = {
     y: 15,
     direction: 0, // 0: right, 1: down, 2: left, 3: up
     nextDirection: 0,
-    speed: 0.12, // VELOCIDAD REDUCIDA
+    speed: 0.12,
     animation: 0,
-    mouthOpen: true
+    mouthOpen: true,
+    radius: 8 // RADIO PARA HITBOX CIRCULAR
 };
 
 let ghosts = [];
@@ -269,7 +270,7 @@ function setupLevel() {
     // Crear frutas
     createFruits();
     
-    // Crear fantasmas - SISTEMA COMPLETAMENTE NUEVO
+    // Crear fantasmas
     createGhosts();
     
     totalDots = dots.length;
@@ -336,7 +337,7 @@ function createFruits() {
     ];
 }
 
-// Crear fantasmas - SISTEMA SIMPLIFICADO Y CORREGIDO
+// Crear fantasmas
 function createGhosts() {
     ghosts = [
         {
@@ -347,11 +348,12 @@ function createGhosts() {
             color: colors.ghostRed,
             name: 'Blinky',
             direction: 2,
-            speed: 0.08, // VELOCIDAD MUCHO MÁS LENTA
+            speed: 0.08,
             mode: 'chase',
             target: {x: 0, y: 0},
             inHouse: false,
-            releaseTimer: 0 // Inmediatamente disponible
+            releaseTimer: 0,
+            radius: 8 // RADIO PARA HITBOX CIRCULAR
         },
         {
             x: 8,
@@ -365,7 +367,8 @@ function createGhosts() {
             mode: 'chase',
             target: {x: 0, y: 0},
             inHouse: true,
-            releaseTimer: 500 // Sale después de 5 segundos
+            releaseTimer: 500,
+            radius: 8
         },
         {
             x: 9,
@@ -379,7 +382,8 @@ function createGhosts() {
             mode: 'chase',
             target: {x: 0, y: 0},
             inHouse: true,
-            releaseTimer: 1000 // Sale después de 10 segundos
+            releaseTimer: 1000,
+            radius: 8
         },
         {
             x: 10,
@@ -393,7 +397,8 @@ function createGhosts() {
             mode: 'chase',
             target: {x: 0, y: 0},
             inHouse: true,
-            releaseTimer: 1500 // Sale después de 15 segundos
+            releaseTimer: 1500,
+            radius: 8
         }
     ];
 }
@@ -410,7 +415,7 @@ function nextLevel() {
     drawGame();
 }
 
-// Iniciar bucle del juego - CON DELTA TIME
+// Iniciar bucle del juego
 function startGameLoop() {
     if (gameLoopId) {
         cancelAnimationFrame(gameLoopId);
@@ -419,7 +424,7 @@ function startGameLoop() {
     gameLoopId = requestAnimationFrame(gameLoop);
 }
 
-// Bucle principal del juego - CON DELTA TIME
+// Bucle principal del juego
 function gameLoop(timestamp) {
     if (!gameRunning || gamePaused) {
         return;
@@ -434,7 +439,7 @@ function gameLoop(timestamp) {
     gameLoopId = requestAnimationFrame(gameLoop);
 }
 
-// Actualizar estado del juego - CON DELTA TIME
+// Actualizar estado del juego
 function updateGame(deltaTime) {
     // Actualizar animación de Pac-Man
     pacman.animation = (pacman.animation + 1) % 10;
@@ -446,7 +451,7 @@ function updateGame(deltaTime) {
     // Mover fantasmas
     moveGhosts(deltaTime);
     
-    // Verificar colisiones
+    // Verificar colisiones - CON HITBOXES CORREGIDAS
     checkCollisions();
     
     // Actualizar modo power
@@ -471,7 +476,7 @@ function updateGame(deltaTime) {
     updateUI();
 }
 
-// Mover Pac-Man - CON DELTA TIME
+// Mover Pac-Man
 function movePacman(deltaTime) {
     // Intentar cambiar dirección
     if (canMove(pacman.x, pacman.y, pacman.nextDirection)) {
@@ -500,14 +505,23 @@ function movePacman(deltaTime) {
     if (pacman.x < 0) pacman.x = GRID_WIDTH - 1;
     if (pacman.x >= GRID_WIDTH) pacman.x = 0;
     
-    // Actualizar posición en grid
-    const gridX = Math.round(pacman.x);
-    const gridY = Math.round(pacman.y);
+    // Recolectar puntos y power pellets - CON HITBOXES MEJORADAS
+    const pacmanCenterX = pacman.x * TILE_SIZE + TILE_SIZE / 2;
+    const pacmanCenterY = pacman.y * TILE_SIZE + TILE_SIZE / 2;
     
     // Recolectar puntos
     for (let i = dots.length - 1; i >= 0; i--) {
         const dot = dots[i];
-        if (dot.x === gridX && dot.y === gridY) {
+        const dotX = dot.x * TILE_SIZE + TILE_SIZE / 2;
+        const dotY = dot.y * TILE_SIZE + TILE_SIZE / 2;
+        
+        // Colisión circular con puntos
+        const distance = Math.sqrt(
+            Math.pow(pacmanCenterX - dotX, 2) + 
+            Math.pow(pacmanCenterY - dotY, 2)
+        );
+        
+        if (distance < pacman.radius + 3) {
             dots.splice(i, 1);
             score += 10;
             dotsCollected++;
@@ -517,7 +531,16 @@ function movePacman(deltaTime) {
     // Recolectar power pellets
     for (let i = powerPellets.length - 1; i >= 0; i--) {
         const pellet = powerPellets[i];
-        if (pellet.x === gridX && pellet.y === gridY) {
+        const pelletX = pellet.x * TILE_SIZE + TILE_SIZE / 2;
+        const pelletY = pellet.y * TILE_SIZE + TILE_SIZE / 2;
+        
+        // Colisión circular con power pellets
+        const distance = Math.sqrt(
+            Math.pow(pacmanCenterX - pelletX, 2) + 
+            Math.pow(pacmanCenterY - pelletY, 2)
+        );
+        
+        if (distance < pacman.radius + 6) {
             powerPellets.splice(i, 1);
             score += 50;
             activatePowerMode();
@@ -527,46 +550,70 @@ function movePacman(deltaTime) {
     // Recolectar frutas
     for (let i = fruits.length - 1; i >= 0; i--) {
         const fruit = fruits[i];
-        if (fruit.x === gridX && fruit.y === gridY) {
+        const fruitX = fruit.x * TILE_SIZE + TILE_SIZE / 2;
+        const fruitY = fruit.y * TILE_SIZE + TILE_SIZE / 2;
+        
+        // Colisión circular con frutas
+        const distance = Math.sqrt(
+            Math.pow(pacmanCenterX - fruitX, 2) + 
+            Math.pow(pacmanCenterY - fruitY, 2)
+        );
+        
+        if (distance < pacman.radius + 5) {
             fruits.splice(i, 1);
             score += fruit.points;
         }
     }
 }
 
-// Verificar si puede moverse
+// Verificar si puede moverse - HITBOXES DE PARED MEJORADAS
 function canMove(x, y, direction) {
-    let newX = Math.round(x);
-    let newY = Math.round(y);
+    // Convertir posición a píxeles
+    const pixelX = x * TILE_SIZE;
+    const pixelY = y * TILE_SIZE;
+    
+    // Hitbox de Pac-Man (círculo)
+    const pacmanRadius = pacman.radius;
+    const pacmanCenterX = pixelX + TILE_SIZE / 2;
+    const pacmanCenterY = pixelY + TILE_SIZE / 2;
+    
+    // Posición futura basada en la dirección
+    let testX = pacmanCenterX;
+    let testY = pacmanCenterY;
     
     switch(direction) {
         case 0: // right
-            newX = Math.floor(x + 0.6);
+            testX += pacman.speed * 2 + pacmanRadius;
             break;
         case 1: // down
-            newY = Math.floor(y + 0.6);
+            testY += pacman.speed * 2 + pacmanRadius;
             break;
         case 2: // left
-            newX = Math.ceil(x - 0.6);
+            testX -= pacman.speed * 2 + pacmanRadius;
             break;
         case 3: // up
-            newY = Math.ceil(y - 0.6);
+            testY -= pacman.speed * 2 + pacmanRadius;
             break;
     }
     
+    // Convertir posición de prueba a coordenadas de grid
+    const gridX = Math.floor(testX / TILE_SIZE);
+    const gridY = Math.floor(testY / TILE_SIZE);
+    
     // Teletransporte entre túneles
-    if (newX < 0 || newX >= GRID_WIDTH) {
+    if (gridX < 0 || gridX >= GRID_WIDTH) {
         return true;
     }
     
-    if (newY < 0 || newY >= GRID_HEIGHT) {
+    if (gridY < 0 || gridY >= GRID_HEIGHT) {
         return false;
     }
     
-    return maze[newY][newX] === 0;
+    // Verificar si la celda es transitable
+    return maze[gridY][gridX] === 0;
 }
 
-// Mover fantasmas - SISTEMA COMPLETAMENTE NUEVO
+// Mover fantasmas
 function moveGhosts(deltaTime) {
     ghosts.forEach(ghost => {
         // Actualizar timer de liberación
@@ -617,33 +664,55 @@ function moveGhosts(deltaTime) {
 
 // Verificar si está en una intersección
 function isAtIntersection(x, y) {
-    // Un punto es intersección si tiene más de 2 direcciones posibles
     let possibleDirections = 0;
     for (let dir = 0; dir < 4; dir++) {
-        if (canMove(x, y, dir)) {
+        if (canMoveGhost(x, y, dir)) {
             possibleDirections++;
         }
     }
     return possibleDirections > 2;
 }
 
-// Actualizar objetivo del fantasma - SIMPLIFICADO
+// Verificar movimiento para fantasmas (más permisivo)
+function canMoveGhost(x, y, direction) {
+    let newX = x;
+    let newY = y;
+    
+    switch(direction) {
+        case 0: newX++; break;
+        case 1: newY++; break;
+        case 2: newX--; break;
+        case 3: newY--; break;
+    }
+    
+    // Teletransporte entre túneles
+    if (newX < 0 || newX >= GRID_WIDTH) {
+        return true;
+    }
+    
+    if (newY < 0 || newY >= GRID_HEIGHT) {
+        return false;
+    }
+    
+    return maze[newY][newX] === 0;
+}
+
+// Actualizar objetivo del fantasma
 function updateGhostTarget(ghost) {
     if (powerMode && ghost.mode !== 'frightened') {
         ghost.mode = 'frightened';
-        ghost.speed = 0.05; // Más lento cuando está asustado
+        ghost.speed = 0.05;
     } else if (!powerMode && ghost.mode === 'frightened') {
         ghost.mode = 'chase';
         ghost.speed = 0.08;
     }
     
-    // Comportamientos simples y efectivos
     switch(ghost.name) {
-        case 'Blinky': // Rojo - persigue directamente
+        case 'Blinky':
             ghost.target.x = Math.round(pacman.x);
             ghost.target.y = Math.round(pacman.y);
             break;
-        case 'Pinky': // Rosa - persigue 2 casillas adelante
+        case 'Pinky':
             let aheadX = Math.round(pacman.x);
             let aheadY = Math.round(pacman.y);
             switch(pacman.direction) {
@@ -655,7 +724,7 @@ function updateGhostTarget(ghost) {
             ghost.target.x = aheadX;
             ghost.target.y = aheadY;
             break;
-        case 'Inky': // Cian - comportamiento aleatorio simple
+        case 'Inky':
             if (Math.random() < 0.7) {
                 ghost.target.x = Math.round(pacman.x);
                 ghost.target.y = Math.round(pacman.y);
@@ -664,50 +733,44 @@ function updateGhostTarget(ghost) {
                 ghost.target.y = Math.floor(Math.random() * GRID_HEIGHT);
             }
             break;
-        case 'Clyde': // Naranja - huye cuando está cerca
+        case 'Clyde':
             const distance = Math.sqrt(
                 Math.pow(ghost.x - pacman.x, 2) + 
                 Math.pow(ghost.y - pacman.y, 2)
             );
             if (distance < 4) {
-                // Huir a esquina
                 ghost.target.x = 1;
                 ghost.target.y = GRID_HEIGHT - 2;
             } else {
-                // Perseguir
                 ghost.target.x = Math.round(pacman.x);
                 ghost.target.y = Math.round(pacman.y);
             }
             break;
     }
     
-    // En modo asustado, objetivo aleatorio
     if (ghost.mode === 'frightened') {
         ghost.target.x = Math.floor(Math.random() * GRID_WIDTH);
         ghost.target.y = Math.floor(Math.random() * GRID_HEIGHT);
     }
 }
 
-// Elegir dirección del fantasma - ALGORITMO SIMPLE Y FUNCIONAL
+// Elegir dirección del fantasma
 function chooseGhostDirection(ghost) {
     const possibleDirections = [];
     
-    // Obtener direcciones posibles (evitar reversa)
     for (let dir = 0; dir < 4; dir++) {
-        // Evitar dar la vuelta inmediatamente (excepto en modo asustado)
         if (ghost.mode !== 'frightened' && dir === (ghost.direction + 2) % 4) {
             continue;
         }
         
-        if (canMove(ghost.x, ghost.y, dir)) {
+        if (canMoveGhost(ghost.gridX, ghost.gridY, dir)) {
             possibleDirections.push(dir);
         }
     }
     
     if (possibleDirections.length === 0) {
-        // Si no hay direcciones, permitir reversa
         for (let dir = 0; dir < 4; dir++) {
-            if (canMove(ghost.x, ghost.y, dir)) {
+            if (canMoveGhost(ghost.gridX, ghost.gridY, dir)) {
                 possibleDirections.push(dir);
             }
         }
@@ -718,10 +781,8 @@ function chooseGhostDirection(ghost) {
     let chosenDirection;
     
     if (ghost.mode === 'frightened') {
-        // Movimiento aleatorio cuando está asustado
         chosenDirection = possibleDirections[Math.floor(Math.random() * possibleDirections.length)];
     } else {
-        // Elegir dirección que lleve más cerca del objetivo
         let bestDirection = possibleDirections[0];
         let bestDistance = Infinity;
         
@@ -753,7 +814,7 @@ function chooseGhostDirection(ghost) {
 // Activar modo power
 function activatePowerMode() {
     powerMode = true;
-    powerTimer = 420; // 7 segundos aprox
+    powerTimer = 420;
     
     ghosts.forEach(ghost => {
         if (!ghost.inHouse) {
@@ -765,19 +826,27 @@ function activatePowerMode() {
     console.log('¡Modo power activado!');
 }
 
-// Verificar colisiones - MEJORADO
+// Verificar colisiones - SISTEMA DE HITBOXES CIRCULARES
 function checkCollisions() {
-    const pacmanX = Math.round(pacman.x);
-    const pacmanY = Math.round(pacman.y);
+    const pacmanCenterX = pacman.x * TILE_SIZE + TILE_SIZE / 2;
+    const pacmanCenterY = pacman.y * TILE_SIZE + TILE_SIZE / 2;
     
     ghosts.forEach(ghost => {
         if (ghost.inHouse) return;
         
-        const ghostX = Math.round(ghost.x);
-        const ghostY = Math.round(ghost.y);
+        const ghostCenterX = ghost.x * TILE_SIZE + TILE_SIZE / 2;
+        const ghostCenterY = ghost.y * TILE_SIZE + TILE_SIZE / 2;
         
-        // Colisión simple (misma celda)
-        if (pacmanX === ghostX && pacmanY === ghostY) {
+        // COLISIÓN CIRCULAR - MÁS PRECISA
+        const distance = Math.sqrt(
+            Math.pow(pacmanCenterX - ghostCenterX, 2) + 
+            Math.pow(pacmanCenterY - ghostCenterY, 2)
+        );
+        
+        // Radio combinado para colisión
+        const collisionDistance = pacman.radius + ghost.radius;
+        
+        if (distance < collisionDistance) {
             if (powerMode && ghost.mode === 'frightened') {
                 // Comer fantasma
                 score += 200;
@@ -787,7 +856,7 @@ function checkCollisions() {
                 ghost.x = 9;
                 ghost.y = 9;
                 ghost.inHouse = true;
-                ghost.releaseTimer = 300; // 3 segundos para salir
+                ghost.releaseTimer = 300;
                 ghost.mode = 'chase';
                 ghost.speed = 0.08;
             } else if (ghost.mode !== 'frightened') {
@@ -847,11 +916,9 @@ function gameOver() {
         gameLoopId = null;
     }
     
-    // Calcular estrellas
     let starsEarned = Math.min(3, Math.floor(level / 2));
     starsEarned = Math.max(1, starsEarned);
     
-    // Mostrar estrellas
     stars.forEach((star, index) => {
         if (index < starsEarned) {
             star.classList.add('active');
@@ -860,10 +927,8 @@ function gameOver() {
         }
     });
     
-    // Guardar progreso
     saveProgress(starsEarned);
     
-    // Mostrar pantalla de game over
     finalLevelElement.textContent = level;
     finalScoreElement.textContent = score;
     earnedStarsElement.textContent = starsEarned;
@@ -882,10 +947,8 @@ function levelComplete() {
         gameLoopId = null;
     }
     
-    // Calcular estrellas
     let starsEarned = Math.min(3, level);
     
-    // Mostrar estrellas
     stars.forEach((star, index) => {
         if (index < starsEarned) {
             star.classList.add('active');
@@ -894,14 +957,11 @@ function levelComplete() {
         }
     });
     
-    // Guardar progreso
     saveProgress(starsEarned);
     
-    // Mostrar pantalla de nivel completado
     nextLevelElement.textContent = level + 1;
     levelCompleteElement.style.display = 'flex';
     
-    // Auto-siguiente nivel después de 3 segundos
     setTimeout(() => {
         if (levelCompleteElement.style.display === 'flex') {
             nextLevel();
@@ -930,7 +990,6 @@ function saveProgress(starsEarned) {
 function goToMenu() {
     console.log('Volviendo al menú...');
     
-    // Detener el juego
     gameRunning = false;
     if (gameLoopId) {
         cancelAnimationFrame(gameLoopId);
@@ -938,7 +997,6 @@ function goToMenu() {
     }
     
     try {
-        // Intentar navegar al index.html
         const currentPath = window.location.pathname;
         const basePath = currentPath.substring(0, currentPath.lastIndexOf('/'));
         const indexUrl = basePath ? `${basePath}/index.html` : '../index.html';
@@ -952,7 +1010,7 @@ function goToMenu() {
 }
 
 // =============================================
-// SISTEMA DE DIBUJO (sin cambios mayores)
+// SISTEMA DE DIBUJO
 // =============================================
 
 function drawGame() {
@@ -977,6 +1035,43 @@ function drawGame() {
     
     // Dibujar Pac-Man
     drawPacman();
+    
+    // DEBUG: Dibujar hitboxes (opcional)
+    if (false) { // Cambiar a true para ver hitboxes
+        drawHitboxes();
+    }
+}
+
+// Función para debug de hitboxes
+function drawHitboxes() {
+    // Hitbox de Pac-Man
+    ctx.strokeStyle = '#00ff00';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(
+        pacman.x * TILE_SIZE + TILE_SIZE / 2,
+        pacman.y * TILE_SIZE + TILE_SIZE / 2,
+        pacman.radius,
+        0,
+        Math.PI * 2
+    );
+    ctx.stroke();
+    
+    // Hitboxes de fantasmas
+    ghosts.forEach(ghost => {
+        if (!ghost.inHouse) {
+            ctx.strokeStyle = '#ff0000';
+            ctx.beginPath();
+            ctx.arc(
+                ghost.x * TILE_SIZE + TILE_SIZE / 2,
+                ghost.y * TILE_SIZE + TILE_SIZE / 2,
+                ghost.radius,
+                0,
+                Math.PI * 2
+            );
+            ctx.stroke();
+        }
+    });
 }
 
 function drawMaze() {
@@ -991,7 +1086,6 @@ function drawMaze() {
                     TILE_SIZE
                 );
                 
-                // Borde interior para efecto 3D
                 ctx.strokeStyle = '#0d24b3';
                 ctx.lineWidth = 2;
                 ctx.strokeRect(
@@ -1048,7 +1142,6 @@ function drawFruits() {
         );
         ctx.fill();
         
-        // Tallo
         ctx.strokeStyle = '#27ae60';
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -1063,7 +1156,6 @@ function drawGhosts() {
         const x = ghost.x * TILE_SIZE;
         const y = ghost.y * TILE_SIZE;
         
-        // Cuerpo del fantasma
         ctx.fillStyle = ghost.mode === 'frightened' ? colors.ghostScared : ghost.color;
         ctx.beginPath();
         ctx.arc(x + TILE_SIZE / 2, y + TILE_SIZE / 2, TILE_SIZE / 2 - 2, Math.PI, 0, false);
@@ -1072,7 +1164,6 @@ function drawGhosts() {
         ctx.closePath();
         ctx.fill();
         
-        // Ojos
         const eyeOffset = ghost.mode === 'frightened' ? 0 : 2;
         ctx.fillStyle = colors.ghostEyes;
         ctx.beginPath();
@@ -1080,7 +1171,6 @@ function drawGhosts() {
         ctx.arc(x + TILE_SIZE / 2 + 4, y + TILE_SIZE / 2, 2, 0, Math.PI * 2);
         ctx.fill();
         
-        // Pupilas (dirección)
         if (ghost.mode !== 'frightened') {
             ctx.fillStyle = '#000';
             let pupilX1 = x + TILE_SIZE / 2 - 4;
@@ -1089,22 +1179,10 @@ function drawGhosts() {
             let pupilY2 = y + TILE_SIZE / 2;
             
             switch(ghost.direction) {
-                case 0: // right
-                    pupilX1 += eyeOffset;
-                    pupilX2 += eyeOffset;
-                    break;
-                case 1: // down
-                    pupilY1 += eyeOffset;
-                    pupilY2 += eyeOffset;
-                    break;
-                case 2: // left
-                    pupilX1 -= eyeOffset;
-                    pupilX2 -= eyeOffset;
-                    break;
-                case 3: // up
-                    pupilY1 -= eyeOffset;
-                    pupilY2 -= eyeOffset;
-                    break;
+                case 0: pupilX1 += eyeOffset; pupilX2 += eyeOffset; break;
+                case 1: pupilY1 += eyeOffset; pupilY2 += eyeOffset; break;
+                case 2: pupilX1 -= eyeOffset; pupilX2 -= eyeOffset; break;
+                case 3: pupilY1 -= eyeOffset; pupilY2 -= eyeOffset; break;
             }
             
             ctx.beginPath();
@@ -1112,7 +1190,6 @@ function drawGhosts() {
             ctx.arc(pupilX2, pupilY2, 1, 0, Math.PI * 2);
             ctx.fill();
         } else {
-            // Ojos asustados
             ctx.strokeStyle = '#000';
             ctx.lineWidth = 1;
             ctx.beginPath();
@@ -1138,22 +1215,10 @@ function drawPacman() {
         let startAngle, endAngle;
         
         switch(pacman.direction) {
-            case 0: // right
-                startAngle = 0.2 * Math.PI;
-                endAngle = 1.8 * Math.PI;
-                break;
-            case 1: // down
-                startAngle = 0.7 * Math.PI;
-                endAngle = 2.3 * Math.PI;
-                break;
-            case 2: // left
-                startAngle = 1.2 * Math.PI;
-                endAngle = 2.8 * Math.PI;
-                break;
-            case 3: // up
-                startAngle = 1.7 * Math.PI;
-                endAngle = 3.3 * Math.PI;
-                break;
+            case 0: startAngle = 0.2 * Math.PI; endAngle = 1.8 * Math.PI; break;
+            case 1: startAngle = 0.7 * Math.PI; endAngle = 2.3 * Math.PI; break;
+            case 2: startAngle = 1.2 * Math.PI; endAngle = 2.8 * Math.PI; break;
+            case 3: startAngle = 1.7 * Math.PI; endAngle = 3.3 * Math.PI; break;
         }
         
         ctx.beginPath();
@@ -1162,22 +1227,20 @@ function drawPacman() {
         ctx.closePath();
         ctx.fill();
     } else {
-        // Boca cerrada
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
         ctx.fill();
     }
     
-    // Ojo de Pac-Man
     ctx.fillStyle = '#000';
     let eyeX = centerX;
     let eyeY = centerY - 3;
     
     switch(pacman.direction) {
-        case 0: eyeX += 2; break; // right
-        case 1: eyeY += 2; break; // down
-        case 2: eyeX -= 2; break; // left
-        case 3: eyeY -= 2; break; // up
+        case 0: eyeX += 2; break;
+        case 1: eyeY += 2; break;
+        case 2: eyeX -= 2; break;
+        case 3: eyeY -= 2; break;
     }
     
     ctx.beginPath();
