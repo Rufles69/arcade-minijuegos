@@ -21,6 +21,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            padding: 20px;
         }
         
         .game-container {
@@ -28,7 +29,6 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 20px;
             width: 100%;
             max-width: 500px;
         }
@@ -85,16 +85,17 @@
             position: relative;
             margin: 15px 0;
             width: 100%;
+            background: #0f3460;
+            border: 4px solid #e74c3c;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(231, 76, 60, 0.4);
+            overflow: hidden;
         }
         
         canvas {
-            border: 4px solid #e74c3c;
-            border-radius: 10px;
-            background: #0f3460;
-            box-shadow: 0 0 20px rgba(231, 76, 60, 0.4);
             display: block;
             width: 100%;
-            image-rendering: pixelated;
+            background: #0f3460;
         }
         
         .controls {
@@ -149,28 +150,35 @@
             box-shadow: 0 4px 0 #2d3436;
         }
         
-        .game-over, .level-complete, .paused-screen {
-            display: none;
+        .game-over, .level-complete, .paused-screen, .start-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background: linear-gradient(145deg, #16213e, #0f3460);
             padding: 30px;
-            border-radius: 15px;
-            border: 4px solid #e74c3c;
             text-align: center;
             z-index: 100;
-            box-shadow: 0 0 40px rgba(231, 76, 60, 0.6);
-            width: 90%;
-            max-width: 350px;
+        }
+        
+        .start-screen {
+            display: flex;
+        }
+        
+        .game-over, .level-complete, .paused-screen {
+            display: none;
         }
         
         .level-complete {
             border: 4px solid #27ae60;
         }
         
-        .game-over h2, .level-complete h2, .paused-screen h2 {
+        .game-over h2, .level-complete h2, .paused-screen h2, .start-screen h2 {
             color: #e74c3c;
             font-size: 1.5rem;
             margin-bottom: 15px;
@@ -185,7 +193,7 @@
             color: #f1c40f;
         }
         
-        .game-over p, .level-complete p, .paused-screen p {
+        .game-over p, .level-complete p, .paused-screen p, .start-screen p {
             margin: 10px 0;
             font-size: 0.8rem;
             line-height: 1.5;
@@ -278,7 +286,7 @@
                 font-size: 0.6rem;
             }
             
-            canvas {
+            .game-board {
                 height: 400px;
             }
             
@@ -302,13 +310,13 @@
                 font-size: 1.2rem;
             }
             
-            canvas {
+            .game-board {
                 height: 350px;
             }
         }
 
         @media (min-width: 769px) {
-            canvas {
+            .game-board {
                 height: 450px;
             }
         }
@@ -339,6 +347,16 @@
         
         <div class="game-board">
             <canvas id="gameCanvas" width="400" height="450"></canvas>
+            
+            <div class="start-screen" id="startScreen">
+                <h2>🥷 EL NINJA SOMBRA</h2>
+                <p>ELIMINA GUARDIAS SIN SER VISTO</p>
+                <p>USA SHURIKENS Y MODO SIGILO</p>
+                <div class="buttons">
+                    <button class="btn" id="startBtn">INICIAR JUEGO</button>
+                    <button class="btn btn-secondary" id="menuBtn">VOLVER AL MENÚ</button>
+                </div>
+            </div>
             
             <div class="game-over" id="gameOver">
                 <h2>¡GAME OVER!</h2>
@@ -390,10 +408,6 @@
                 <p>Z PARA LANZAR SHURIKEN</p>
                 <p>X PARA MODO SIGILO</p>
                 <p>¡ELIMINA GUARDIAS SIN SER VISTO! 👮</p>
-            </div>
-            <div class="buttons">
-                <button class="btn" id="startBtn">INICIAR JUEGO</button>
-                <button class="btn btn-secondary" id="menuBtn">VOLVER AL MENÚ</button>
             </div>
         </div>
     </div>
