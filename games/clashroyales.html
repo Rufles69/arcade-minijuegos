@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clash Royale - Mini Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 800px;
+        }
+        
+        .game-header {
+            margin-bottom: 20px;
+            text-align: center;
+            width: 100%;
+        }
+        
+        .game-title {
+            color: #ffd700;
+            font-size: 2rem;
+            margin-bottom: 15px;
+            text-shadow: 3px 3px 0 #000;
+        }
+        
+        .game-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+            width: 100%;
+        }
+        
+        .stat {
+            background: linear-gradient(145deg, #16213e, #0f3460);
+            padding: 12px;
+            border-radius: 8px;
+            border: 2px solid #ffd700;
+            font-size: 0.7rem;
+            text-align: center;
+        }
+        
+        .arena-container {
+            position: relative;
+            margin: 15px 0;
+            width: 100%;
+            background: #0f3460;
+            border: 4px solid #ffd700;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+            overflow: hidden;
+        }
+        
+        canvas {
+            display: block;
+            width: 100%;
+            background: #0f3460;
+        }
+        
+        .game-controls {
+            margin-top: 20px;
+            text-align: center;
+            color: #a9b7c6;
+            font-size: 0.8rem;
+            width: 100%;
+        }
+        
+        .controls-info {
+            background: rgba(15, 52, 96, 0.7);
+            padding: 12px;
+            border-radius: 8px;
+            border: 2px solid #ff6b6b;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+        
+        .cards-container {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .card {
+            width: 80px;
+            height: 100px;
+            background: linear-gradient(145deg, #4a4a4a, #2d2d2d);
+            border: 2px solid #ffd700;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.4);
+        }
+        
+        .card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .card-cost {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #ff6b6b;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+        }
+        
+        .card-icon {
+            font-size: 2rem;
+            margin-bottom: 5px;
+        }
+        
+        .card-name {
+            font-size: 0.5rem;
+            text-align: center;
+            padding: 0 5px;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            background: linear-gradient(145deg, #ffd700, #ff6b6b);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            padding: 12px 20px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 0 #cc5500;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 #cc5500;
+        }
+        
+        .btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 3px 0 #cc5500;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(145deg, #7f8c8d, #636e72);
+            box-shadow: 0 4px 0 #2d3436;
+        }
+        
+        .game-over, .level-complete, .paused-screen, .start-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(145deg, rgba(22, 33, 62, 0.95), rgba(15, 52, 96, 0.95));
+            padding: 30px;
+            text-align: center;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+        }
+        
+        .start-screen {
+            display: flex;
+        }
+        
+        .game-over, .level-complete, .paused-screen {
+            display: none;
+        }
+        
+        .level-complete {
+            border: 4px solid #27ae60;
+        }
+        
+        .game-over h2, .level-complete h2, .paused-screen h2, .start-screen h2 {
+            color: #ffd700;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 0 #000;
+        }
+        
+        .level-complete h2 {
+            color: #27ae60;
+        }
+        
+        .paused-screen h2 {
+            color: #f1c40f;
+        }
+        
+        .game-over p, .level-complete p, .paused-screen p, .start-screen p {
+            margin: 10px 0;
+            font-size: 0.8rem;
+            line-height: 1.5;
+        }
+        
+        .stars-display {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px 0;
+        }
+        
+        .star {
+            font-size: 2rem;
+            filter: grayscale(1);
+        }
+        
+        .star.active {
+            filter: grayscale(0);
+            text-shadow: 0 0 15px gold;
+        }
+        
+        .elixir-bar {
+            width: 100%;
+            height: 20px;
+            background: #2c3e50;
+            border-radius: 10px;
+            border: 2px solid #ffd700;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        
+        .elixir-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #9b59b6, #8e44ad);
+            border-radius: 8px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .mobile-controls {
+            display: none;
+            margin-top: 15px;
+            gap: 8px;
+            flex-direction: column;
+            width: 100%;
+        }
+        
+        @media (max-width: 768px) {
+            .game-container {
+                padding: 10px;
+            }
+            
+            .game-title {
+                font-size: 1.4rem;
+            }
+            
+            .game-stats {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+            
+            .stat {
+                padding: 8px;
+                font-size: 0.6rem;
+            }
+            
+            .arena-container {
+                height: 500px;
+            }
+            
+            .cards-container {
+                gap: 5px;
+            }
+            
+            .card {
+                width: 70px;
+                height: 90px;
+            }
+            
+            .card-icon {
+                font-size: 1.5rem;
+            }
+            
+            .mobile-controls {
+                display: flex;
+            }
+            
+            .buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 200px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .game-title {
+                font-size: 1.2rem;
+            }
+            
+            .arena-container {
+                height: 400px;
+            }
+            
+            .card {
+                width: 60px;
+                height: 80px;
+            }
+            
+            .card-icon {
+                font-size: 1.2rem;
+            }
+            
+            .card-name {
+                font-size: 0.4rem;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .arena-container {
+                height: 600px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1 class="game-title">🏰 CLASH ROYALE</h1>
+            <div class="game-stats">
+                <div class="stat">CORONAS: <span id="crowns">0</span>/3</div>
+                <div class="stat">ELIXIR: <span id="elixir">5</span>/10</div>
+                <div class="stat">NIVEL: <span id="level">1</span></div>
+            </div>
+            <div class="elixir-bar">
+                <div class="elixir-fill" id="elixirFill"></div>
+            </div>
+        </div>
+        
+        <div class="arena-container">
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
+            
+            <div class="start-screen" id="startScreen">
+                <h2>🏰 CLASH ROYALE</h2>
+                <p>DESTRUYE LAS TORRES ENEMIGAS</p>
+                <p>USA CARTAS PARA INVOCAR TROPAS</p>
+                <p>¡GANA 3 CORONAS PARA GANAR!</p>
+            </div>
+            
+            <div class="game-over" id="gameOver">
+                <h2>¡DERROTA!</h2>
+                <p>TU REY HA SIDO DESTRUIDO 👑</p>
+                <p>CORONAS: <span id="finalCrowns">0</span>/3</p>
+                <p>NIVEL: <span id="finalLevel">1</span></p>
+                <div class="stars-display">
+                    <span class="star">⭐</span>
+                    <span class="star">⭐</span>
+                    <span class="star">⭐</span>
+                </div>
+                <p>ESTRELLAS: <span id="earnedStars">0</span></p>
+            </div>
+            
+            <div class="level-complete" id="levelComplete">
+                <h2>¡VICTORIA!</h2>
+                <p>HAS DESTRUIDO EL CASTILLO ENEMIGO</p>
+                <p>SIGUIENTE NIVEL: <span id="nextLevel">2</span></p>
+                <div class="stars-display">
+                    <span class="star">⭐</span>
+                    <span class="star">⭐</span>
+                    <span class="star">⭐</span>
+                </div>
+            </div>
+            
+            <div class="paused-screen" id="pausedScreen">
+                <h2>⏸️ BATALLA PAUSADA</h2>
+                <p>Presiona P para reanudar</p>
+            </div>
+        </div>
+        
+        <!-- CARTAS DE TROPAS -->
+        <div class="game-controls">
+            <div class="cards-container">
+                <div class="card" data-card="barbarian" data-cost="5">
+                    <div class="card-cost">5</div>
+                    <div class="card-icon">🪓</div>
+                    <div class="card-name">BÁRBARO</div>
+                </div>
+                <div class="card" data-card="archer" data-cost="3">
+                    <div class="card-cost">3</div>
+                    <div class="card-icon">🏹</div>
+                    <div class="card-name">ARQUERA</div>
+                </div>
+                <div class="card" data-card="giant" data-cost="5">
+                    <div class="card-cost">5</div>
+                    <div class="card-icon">👹</div>
+                    <div class="card-name">GIGANTE</div>
+                </div>
+                <div class="card" data-card="knight" data-cost="3">
+                    <div class="card-cost">3</div>
+                    <div class="card-icon">⚔️</div>
+                    <div class="card-name">CABALLERO</div>
+                </div>
+                <div class="card" data-card="wizard" data-cost="5">
+                    <div class="card-cost">5</div>
+                    <div class="card-icon">🔮</div>
+                    <div class="card-name">MAGO</div>
+                </div>
+            </div>
+            
+            <div class="controls-info">
+                <p>CLICKEA LAS CARTAS PARA INVOCAR TROPAS</p>
+                <p>EL ELIXIR SE REGENERA AUTOMÁTICAMENTE</p>
+                <p>DESTRUYE LAS TORRES ENEMIGAS PARA GANAR CORONAS 👑</p>
+                <p>P PARA PAUSAR</p>
+            </div>
+            
+            <div class="buttons">
+                <button class="btn" id="startBtn">INICIAR BATALLA</button>
+                <button class="btn" id="pauseBtn">PAUSAR</button>
+                <button class="btn" id="restartBtn">REINICIAR</button>
+                <button class="btn btn-secondary" id="menuBtn">VOLVER AL MENÚ</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="clash-royale.js"></script>
+</body>
+</html>
