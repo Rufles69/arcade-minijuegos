@@ -943,7 +943,7 @@ function placeKeys() {
         placedKeys++;
     }
     
-    // LLAVES MEDIAS 
+    // LLAVES MEDIAS (distancia media,可能需要 explorar)
     const mediumCandidates = candidatePositions.filter(pos => 
         pos.difficulty === 'medium' && 
         pos.distanceToPlayer >= 4 && 
@@ -1514,8 +1514,8 @@ function update(deltaTime) {
     }
     
     if (game.keysCollected >= game.keysRequired && game.exitLocked) {
-        game.message = `¡Tienes todas las llaves ve a la salida! (${remaining} restante${remaining !== 1 ? 's' : ''})`;
-            game.messageTimer = 2;
+        game.message = '¡Ve a la salida y presiona E para abrir!';
+        game.messageTimer = 2;
     }
     
     game.timeLeft -= deltaTime;
@@ -2171,6 +2171,7 @@ function drawHUD() {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.fillText(`PODERES: ${powerUpsCollected}/${totalPowerUps}`, canvas.width/2 + 30, 27);
+    
     
 }
 
