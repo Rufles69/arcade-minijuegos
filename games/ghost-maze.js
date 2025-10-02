@@ -1,4 +1,4 @@
-// ghost-maze.js - Juego Pac-Man estilo (HITBOXES CORREGIDAS)
+// ghost-maze.js - Juego Pac-Man estilo (HITBOXES DE PARED CORREGIDAS)
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -35,7 +35,9 @@ let pacman = {
     speed: 0.12,
     animation: 0,
     mouthOpen: true,
-    radius: 8 // RADIO PARA HITBOX CIRCULAR
+    radius: 7, // Radio reducido para mejor movimiento
+    pixelX: 9 * 20 + 10, // Posición en píxeles
+    pixelY: 15 * 20 + 10
 };
 
 let ghosts = [];
@@ -237,6 +239,8 @@ function resetGame() {
     pacman.nextDirection = 0;
     pacman.animation = 0;
     pacman.mouthOpen = true;
+    pacman.pixelX = 9 * TILE_SIZE + TILE_SIZE / 2;
+    pacman.pixelY = 15 * TILE_SIZE + TILE_SIZE / 2;
     
     // Configurar nivel
     setupLevel();
@@ -343,8 +347,8 @@ function createGhosts() {
         {
             x: 9,
             y: 8,
-            gridX: 9,
-            gridY: 8,
+            pixelX: 9 * TILE_SIZE + TILE_SIZE / 2,
+            pixelY: 8 * TILE_SIZE + TILE_SIZE / 2,
             color: colors.ghostRed,
             name: 'Blinky',
             direction: 2,
@@ -353,13 +357,13 @@ function createGhosts() {
             target: {x: 0, y: 0},
             inHouse: false,
             releaseTimer: 0,
-            radius: 8 // RADIO PARA HITBOX CIRCULAR
+            radius: 8
         },
         {
             x: 8,
             y: 9,
-            gridX: 8,
-            gridY: 9,
+            pixelX: 8 * TILE_SIZE + TILE_SIZE / 2,
+            pixelY: 9 * TILE_SIZE + TILE_SIZE / 2,
             color: colors.ghostPink,
             name: 'Pinky',
             direction: 0,
@@ -373,8 +377,8 @@ function createGhosts() {
         {
             x: 9,
             y: 9,
-            gridX: 9,
-            gridY: 9,
+            pixelX: 9 * TILE_SIZE + TILE_SIZE / 2,
+            pixelY: 9 * TILE_SIZE + TILE_SIZE / 2,
             color: colors.ghostCyan,
             name: 'Inky',
             direction: 0,
@@ -388,8 +392,8 @@ function createGhosts() {
         {
             x: 10,
             y: 9,
-            gridX: 10,
-            gridY: 9,
+            pixelX: 10 * TILE_SIZE + TILE_SIZE / 2,
+            pixelY: 9 * TILE_SIZE + TILE_SIZE / 2,
             color: colors.ghostOrange,
             name: 'Clyde',
             direction: 2,
@@ -445,13 +449,13 @@ function updateGame(deltaTime) {
     pacman.animation = (pacman.animation + 1) % 10;
     pacman.mouthOpen = pacman.animation < 5;
     
-    // Mover Pac-Man
+    // Mover Pac-Man - SISTEMA COMPLETAMENTE NUEVO
     movePacman(deltaTime);
     
     // Mover fantasmas
     moveGhosts(deltaTime);
     
-    // Verificar colisiones - CON HITBOXES CORREGIDAS
+    // Verificar colisiones
     checkCollisions();
     
     // Actualizar modo power
@@ -476,52 +480,97 @@ function updateGame(deltaTime) {
     updateUI();
 }
 
-// Mover Pac-Man
+// Mover Pac-Man - SISTEMA DE MOVIMIENTO CORREGIDO
 function movePacman(deltaTime) {
-    // Intentar cambiar dirección
-    if (canMove(pacman.x, pacman.y, pacman.nextDirection)) {
+    // Intentar cambiar dirección si es posible
+    if (canMoveInDirection(pacman.nextDirection)) {
         pacman.direction = pacman.nextDirection;
     }
     
-    // Mover en la dirección actual
-    if (canMove(pacman.x, pacman.y, pacman.direction)) {
+    // Mover en la dirección actual si es posible
+    if (canMoveInDirection(pacman.direction)) {
+        const moveDistance = pacman.speed * deltaTime;
+        
         switch(pacman.direction) {
             case 0: // right
-                pacman.x += pacman.speed * deltaTime;
+                pacman.pixelX += moveDistance;
                 break;
             case 1: // down
-                pacman.y += pacman.speed * deltaTime;
+                pacman.pixelY += moveDistance;
                 break;
             case 2: // left
-                pacman.x -= pacman.speed * deltaTime;
+                pacman.pixelX -= moveDistance;
                 break;
             case 3: // up
-                pacman.y -= pacman.speed * deltaTime;
+                pacman.pixelY -= moveDistance;
                 break;
         }
+        
+        // Actualizar posición en grid
+        pacman.x = pacman.pixelX / TILE_SIZE;
+        pacman.y = pacman.pixelY / TILE_SIZE;
     }
     
     // Teletransporte entre túneles
-    if (pacman.x < 0) pacman.x = GRID_WIDTH - 1;
-    if (pacman.x >= GRID_WIDTH) pacman.x = 0;
+    if (pacman.pixelX < -pacman.radius) {
+        pacman.pixelX = canvas.width + pacman.radius;
+        pacman.x = pacman.pixelX / TILE_SIZE;
+    } else if (pacman.pixelX > canvas.width + pacman.radius) {
+        pacman.pixelX = -pacman.radius;
+        pacman.x = pacman.pixelX / TILE_SIZE;
+    }
     
-    // Recolectar puntos y power pellets - CON HITBOXES MEJORADAS
-    const pacmanCenterX = pacman.x * TILE_SIZE + TILE_SIZE / 2;
-    const pacmanCenterY = pacman.y * TILE_SIZE + TILE_SIZE / 2;
+    // Recolectar puntos, power pellets y frutas
+    collectItems();
+}
+
+// Verificar si puede moverse en una dirección - SISTEMA CORREGIDO
+function canMoveInDirection(direction) {
+    const futureX = pacman.pixelX;
+    const futureY = pacman.pixelY;
+    const radius = pacman.radius;
+    
+    let testX = futureX;
+    let testY = futureY;
+    
+    // Calcular posición futura basada en la dirección
+    switch(direction) {
+        case 0: // right
+            testX += radius + 1;
+            break;
+        case 1: // down
+            testY += radius + 1;
+            break;
+        case 2: // left
+            testX -= radius + 1;
+            break;
+        case 3: // up
+            testY -= radius + 1;
+            break;
+    }
+    
+    // Convertir a coordenadas de grid
+    const gridX = Math.floor(testX / TILE_SIZE);
+    const gridY = Math.floor(testY / TILE_SIZE);
+    
+    // Verificar límites del grid
+    if (gridX < 0 || gridX >= GRID_WIDTH || gridY < 0 || gridY >= GRID_HEIGHT) {
+        return true; // Permitir teletransporte
+    }
+    
+    // Verificar si la celda es una pared
+    return maze[gridY][gridX] === 0;
+}
+
+// Recolectar items - FUNCIÓN SEPARADA PARA CLARIDAD
+function collectItems() {
+    const gridX = Math.round(pacman.x);
+    const gridY = Math.round(pacman.y);
     
     // Recolectar puntos
     for (let i = dots.length - 1; i >= 0; i--) {
         const dot = dots[i];
-        const dotX = dot.x * TILE_SIZE + TILE_SIZE / 2;
-        const dotY = dot.y * TILE_SIZE + TILE_SIZE / 2;
-        
-        // Colisión circular con puntos
-        const distance = Math.sqrt(
-            Math.pow(pacmanCenterX - dotX, 2) + 
-            Math.pow(pacmanCenterY - dotY, 2)
-        );
-        
-        if (distance < pacman.radius + 3) {
+        if (dot.x === gridX && dot.y === gridY) {
             dots.splice(i, 1);
             score += 10;
             dotsCollected++;
@@ -531,16 +580,7 @@ function movePacman(deltaTime) {
     // Recolectar power pellets
     for (let i = powerPellets.length - 1; i >= 0; i--) {
         const pellet = powerPellets[i];
-        const pelletX = pellet.x * TILE_SIZE + TILE_SIZE / 2;
-        const pelletY = pellet.y * TILE_SIZE + TILE_SIZE / 2;
-        
-        // Colisión circular con power pellets
-        const distance = Math.sqrt(
-            Math.pow(pacmanCenterX - pelletX, 2) + 
-            Math.pow(pacmanCenterY - pelletY, 2)
-        );
-        
-        if (distance < pacman.radius + 6) {
+        if (pellet.x === gridX && pellet.y === gridY) {
             powerPellets.splice(i, 1);
             score += 50;
             activatePowerMode();
@@ -550,70 +590,14 @@ function movePacman(deltaTime) {
     // Recolectar frutas
     for (let i = fruits.length - 1; i >= 0; i--) {
         const fruit = fruits[i];
-        const fruitX = fruit.x * TILE_SIZE + TILE_SIZE / 2;
-        const fruitY = fruit.y * TILE_SIZE + TILE_SIZE / 2;
-        
-        // Colisión circular con frutas
-        const distance = Math.sqrt(
-            Math.pow(pacmanCenterX - fruitX, 2) + 
-            Math.pow(pacmanCenterY - fruitY, 2)
-        );
-        
-        if (distance < pacman.radius + 5) {
+        if (fruit.x === gridX && fruit.y === gridY) {
             fruits.splice(i, 1);
             score += fruit.points;
         }
     }
 }
 
-// Verificar si puede moverse - HITBOXES DE PARED MEJORADAS
-function canMove(x, y, direction) {
-    // Convertir posición a píxeles
-    const pixelX = x * TILE_SIZE;
-    const pixelY = y * TILE_SIZE;
-    
-    // Hitbox de Pac-Man (círculo)
-    const pacmanRadius = pacman.radius;
-    const pacmanCenterX = pixelX + TILE_SIZE / 2;
-    const pacmanCenterY = pixelY + TILE_SIZE / 2;
-    
-    // Posición futura basada en la dirección
-    let testX = pacmanCenterX;
-    let testY = pacmanCenterY;
-    
-    switch(direction) {
-        case 0: // right
-            testX += pacman.speed * 2 + pacmanRadius;
-            break;
-        case 1: // down
-            testY += pacman.speed * 2 + pacmanRadius;
-            break;
-        case 2: // left
-            testX -= pacman.speed * 2 + pacmanRadius;
-            break;
-        case 3: // up
-            testY -= pacman.speed * 2 + pacmanRadius;
-            break;
-    }
-    
-    // Convertir posición de prueba a coordenadas de grid
-    const gridX = Math.floor(testX / TILE_SIZE);
-    const gridY = Math.floor(testY / TILE_SIZE);
-    
-    // Teletransporte entre túneles
-    if (gridX < 0 || gridX >= GRID_WIDTH) {
-        return true;
-    }
-    
-    if (gridY < 0 || gridY >= GRID_HEIGHT) {
-        return false;
-    }
-    
-    // Verificar si la celda es transitable
-    return maze[gridY][gridX] === 0;
-}
-
-// Mover fantasmas
+// Mover fantasmas - SISTEMA MEJORADO
 function moveGhosts(deltaTime) {
     ghosts.forEach(ghost => {
         // Actualizar timer de liberación
@@ -628,36 +612,41 @@ function moveGhosts(deltaTime) {
         // Solo mover fantasmas que están fuera de casa
         if (!ghost.inHouse) {
             // Actualizar posición en grid
-            ghost.gridX = Math.round(ghost.x);
-            ghost.gridY = Math.round(ghost.y);
+            ghost.x = ghost.pixelX / TILE_SIZE;
+            ghost.y = ghost.pixelY / TILE_SIZE;
             
             // Actualizar objetivo
             updateGhostTarget(ghost);
             
             // Elegir dirección solo cuando está en una intersección
-            if (isAtIntersection(ghost.gridX, ghost.gridY)) {
+            if (isAtIntersection(Math.round(ghost.x), Math.round(ghost.y))) {
                 chooseGhostDirection(ghost);
             }
             
             // Mover fantasma
+            const moveDistance = ghost.speed * deltaTime;
+            
             switch(ghost.direction) {
                 case 0: // right
-                    ghost.x += ghost.speed * deltaTime;
+                    ghost.pixelX += moveDistance;
                     break;
                 case 1: // down
-                    ghost.y += ghost.speed * deltaTime;
+                    ghost.pixelY += moveDistance;
                     break;
                 case 2: // left
-                    ghost.x -= ghost.speed * deltaTime;
+                    ghost.pixelX -= moveDistance;
                     break;
                 case 3: // up
-                    ghost.y -= ghost.speed * deltaTime;
+                    ghost.pixelY -= moveDistance;
                     break;
             }
             
             // Teletransporte entre túneles
-            if (ghost.x < 0) ghost.x = GRID_WIDTH - 1;
-            if (ghost.x >= GRID_WIDTH) ghost.x = 0;
+            if (ghost.pixelX < -ghost.radius) {
+                ghost.pixelX = canvas.width + ghost.radius;
+            } else if (ghost.pixelX > canvas.width + ghost.radius) {
+                ghost.pixelX = -ghost.radius;
+            }
         }
     });
 }
@@ -673,7 +662,7 @@ function isAtIntersection(x, y) {
     return possibleDirections > 2;
 }
 
-// Verificar movimiento para fantasmas (más permisivo)
+// Verificar movimiento para fantasmas
 function canMoveGhost(x, y, direction) {
     let newX = x;
     let newY = y;
@@ -685,13 +674,8 @@ function canMoveGhost(x, y, direction) {
         case 3: newY--; break;
     }
     
-    // Teletransporte entre túneles
-    if (newX < 0 || newX >= GRID_WIDTH) {
-        return true;
-    }
-    
-    if (newY < 0 || newY >= GRID_HEIGHT) {
-        return false;
+    if (newX < 0 || newX >= GRID_WIDTH || newY < 0 || newY >= GRID_HEIGHT) {
+        return true; // Permitir teletransporte
     }
     
     return maze[newY][newX] === 0;
@@ -763,14 +747,14 @@ function chooseGhostDirection(ghost) {
             continue;
         }
         
-        if (canMoveGhost(ghost.gridX, ghost.gridY, dir)) {
+        if (canMoveGhost(Math.round(ghost.x), Math.round(ghost.y), dir)) {
             possibleDirections.push(dir);
         }
     }
     
     if (possibleDirections.length === 0) {
         for (let dir = 0; dir < 4; dir++) {
-            if (canMoveGhost(ghost.gridX, ghost.gridY, dir)) {
+            if (canMoveGhost(Math.round(ghost.x), Math.round(ghost.y), dir)) {
                 possibleDirections.push(dir);
             }
         }
@@ -787,8 +771,8 @@ function chooseGhostDirection(ghost) {
         let bestDistance = Infinity;
         
         possibleDirections.forEach(dir => {
-            let testX = ghost.gridX;
-            let testY = ghost.gridY;
+            let testX = Math.round(ghost.x);
+            let testY = Math.round(ghost.y);
             
             switch(dir) {
                 case 0: testX++; break;
@@ -826,24 +810,17 @@ function activatePowerMode() {
     console.log('¡Modo power activado!');
 }
 
-// Verificar colisiones - SISTEMA DE HITBOXES CIRCULARES
+// Verificar colisiones
 function checkCollisions() {
-    const pacmanCenterX = pacman.x * TILE_SIZE + TILE_SIZE / 2;
-    const pacmanCenterY = pacman.y * TILE_SIZE + TILE_SIZE / 2;
-    
     ghosts.forEach(ghost => {
         if (ghost.inHouse) return;
         
-        const ghostCenterX = ghost.x * TILE_SIZE + TILE_SIZE / 2;
-        const ghostCenterY = ghost.y * TILE_SIZE + TILE_SIZE / 2;
-        
-        // COLISIÓN CIRCULAR - MÁS PRECISA
+        // COLISIÓN CIRCULAR MEJORADA
         const distance = Math.sqrt(
-            Math.pow(pacmanCenterX - ghostCenterX, 2) + 
-            Math.pow(pacmanCenterY - ghostCenterY, 2)
+            Math.pow(pacman.pixelX - ghost.pixelX, 2) + 
+            Math.pow(pacman.pixelY - ghost.pixelY, 2)
         );
         
-        // Radio combinado para colisión
         const collisionDistance = pacman.radius + ghost.radius;
         
         if (distance < collisionDistance) {
@@ -853,8 +830,8 @@ function checkCollisions() {
                 console.log(`¡${ghost.name} comido! +200 puntos`);
                 
                 // Respawn fantasma
-                ghost.x = 9;
-                ghost.y = 9;
+                ghost.pixelX = 9 * TILE_SIZE + TILE_SIZE / 2;
+                ghost.pixelY = 9 * TILE_SIZE + TILE_SIZE / 2;
                 ghost.inHouse = true;
                 ghost.releaseTimer = 300;
                 ghost.mode = 'chase';
@@ -877,6 +854,8 @@ function loseLife() {
         gameOver();
     } else {
         // Respawn Pac-Man
+        pacman.pixelX = 9 * TILE_SIZE + TILE_SIZE / 2;
+        pacman.pixelY = 15 * TILE_SIZE + TILE_SIZE / 2;
         pacman.x = 9;
         pacman.y = 15;
         pacman.direction = 0;
@@ -885,14 +864,14 @@ function loseLife() {
         // Respawn fantasmas
         ghosts.forEach(ghost => {
             if (ghost.name === 'Blinky') {
-                ghost.x = 9;
-                ghost.y = 8;
+                ghost.pixelX = 9 * TILE_SIZE + TILE_SIZE / 2;
+                ghost.pixelY = 8 * TILE_SIZE + TILE_SIZE / 2;
                 ghost.inHouse = false;
                 ghost.releaseTimer = 0;
             } else {
-                ghost.x = ghost.name === 'Pinky' ? 8 : 
-                         ghost.name === 'Inky' ? 9 : 10;
-                ghost.y = 9;
+                ghost.pixelX = (ghost.name === 'Pinky' ? 8 : 
+                              ghost.name === 'Inky' ? 9 : 10) * TILE_SIZE + TILE_SIZE / 2;
+                ghost.pixelY = 9 * TILE_SIZE + TILE_SIZE / 2;
                 ghost.inHouse = true;
                 ghost.releaseTimer = ghost.name === 'Pinky' ? 500 : 
                                    ghost.name === 'Inky' ? 1000 : 1500;
@@ -1035,43 +1014,6 @@ function drawGame() {
     
     // Dibujar Pac-Man
     drawPacman();
-    
-    // DEBUG: Dibujar hitboxes (opcional)
-    if (false) { // Cambiar a true para ver hitboxes
-        drawHitboxes();
-    }
-}
-
-// Función para debug de hitboxes
-function drawHitboxes() {
-    // Hitbox de Pac-Man
-    ctx.strokeStyle = '#00ff00';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(
-        pacman.x * TILE_SIZE + TILE_SIZE / 2,
-        pacman.y * TILE_SIZE + TILE_SIZE / 2,
-        pacman.radius,
-        0,
-        Math.PI * 2
-    );
-    ctx.stroke();
-    
-    // Hitboxes de fantasmas
-    ghosts.forEach(ghost => {
-        if (!ghost.inHouse) {
-            ctx.strokeStyle = '#ff0000';
-            ctx.beginPath();
-            ctx.arc(
-                ghost.x * TILE_SIZE + TILE_SIZE / 2,
-                ghost.y * TILE_SIZE + TILE_SIZE / 2,
-                ghost.radius,
-                0,
-                Math.PI * 2
-            );
-            ctx.stroke();
-        }
-    });
 }
 
 function drawMaze() {
@@ -1153,12 +1095,12 @@ function drawFruits() {
 
 function drawGhosts() {
     ghosts.forEach(ghost => {
-        const x = ghost.x * TILE_SIZE;
-        const y = ghost.y * TILE_SIZE;
+        const x = ghost.pixelX - TILE_SIZE / 2;
+        const y = ghost.pixelY - TILE_SIZE / 2;
         
         ctx.fillStyle = ghost.mode === 'frightened' ? colors.ghostScared : ghost.color;
         ctx.beginPath();
-        ctx.arc(x + TILE_SIZE / 2, y + TILE_SIZE / 2, TILE_SIZE / 2 - 2, Math.PI, 0, false);
+        ctx.arc(ghost.pixelX, ghost.pixelY, TILE_SIZE / 2 - 2, Math.PI, 0, false);
         ctx.lineTo(x + TILE_SIZE, y + TILE_SIZE);
         ctx.lineTo(x, y + TILE_SIZE);
         ctx.closePath();
@@ -1167,16 +1109,16 @@ function drawGhosts() {
         const eyeOffset = ghost.mode === 'frightened' ? 0 : 2;
         ctx.fillStyle = colors.ghostEyes;
         ctx.beginPath();
-        ctx.arc(x + TILE_SIZE / 2 - 4, y + TILE_SIZE / 2, 2, 0, Math.PI * 2);
-        ctx.arc(x + TILE_SIZE / 2 + 4, y + TILE_SIZE / 2, 2, 0, Math.PI * 2);
+        ctx.arc(ghost.pixelX - 4, ghost.pixelY, 2, 0, Math.PI * 2);
+        ctx.arc(ghost.pixelX + 4, ghost.pixelY, 2, 0, Math.PI * 2);
         ctx.fill();
         
         if (ghost.mode !== 'frightened') {
             ctx.fillStyle = '#000';
-            let pupilX1 = x + TILE_SIZE / 2 - 4;
-            let pupilY1 = y + TILE_SIZE / 2;
-            let pupilX2 = x + TILE_SIZE / 2 + 4;
-            let pupilY2 = y + TILE_SIZE / 2;
+            let pupilX1 = ghost.pixelX - 4;
+            let pupilY1 = ghost.pixelY;
+            let pupilX2 = ghost.pixelX + 4;
+            let pupilY2 = ghost.pixelY;
             
             switch(ghost.direction) {
                 case 0: pupilX1 += eyeOffset; pupilX2 += eyeOffset; break;
@@ -1193,20 +1135,18 @@ function drawGhosts() {
             ctx.strokeStyle = '#000';
             ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(x + TILE_SIZE / 2 - 6, y + TILE_SIZE / 2 - 2);
-            ctx.lineTo(x + TILE_SIZE / 2 - 2, y + TILE_SIZE / 2 + 2);
-            ctx.moveTo(x + TILE_SIZE / 2 + 6, y + TILE_SIZE / 2 - 2);
-            ctx.lineTo(x + TILE_SIZE / 2 + 2, y + TILE_SIZE / 2 + 2);
+            ctx.moveTo(ghost.pixelX - 6, ghost.pixelY - 2);
+            ctx.lineTo(ghost.pixelX - 2, ghost.pixelY + 2);
+            ctx.moveTo(ghost.pixelX + 6, ghost.pixelY - 2);
+            ctx.lineTo(ghost.pixelX + 2, ghost.pixelY + 2);
             ctx.stroke();
         }
     });
 }
 
 function drawPacman() {
-    const x = pacman.x * TILE_SIZE;
-    const y = pacman.y * TILE_SIZE;
-    const centerX = x + TILE_SIZE / 2;
-    const centerY = y + TILE_SIZE / 2;
+    const centerX = pacman.pixelX;
+    const centerY = pacman.pixelY;
     const radius = TILE_SIZE / 2 - 2;
     
     ctx.fillStyle = colors.pacman;
