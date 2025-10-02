@@ -15,31 +15,32 @@ const finalGuardsElement = document.getElementById('finalGuards');
 const earnedStarsElement = document.getElementById('earnedStars');
 const nextLevelElement = document.getElementById('nextLevel');
 const startBtn = document.getElementById('startBtn');
+const pauseBtn = document.getElementById('pauseBtn');
+const restartBtn = document.getElementById('restartBtn');
 const menuBtn = document.getElementById('menuBtn');
-const playAgainBtn = document.getElementById('playAgainBtn');
-const nextLevelBtn = document.getElementById('nextLevelBtn');
-const resumeBtn = document.getElementById('resumeBtn');
 const stars = document.querySelectorAll('.star');
 const mobileBtns = document.querySelectorAll('.mobile-btn');
 
 // Configuración del juego
-const gravity = 0.5;
-const jumpForce = -10;
+const gravity = 0.8;
+const jumpForce = -14;
 
 // Variables del juego
 let ninja = {
     x: 50,
     y: 300,
-    width: 20,
-    height: 30,
-    speed: 5,
+    width: 25,
+    height: 35,
+    speed: 6,
     velX: 0,
     velY: 0,
     jumping: false,
     doubleJump: false,
     stealth: false,
     facingRight: true,
-    shurikens: 5
+    shurikens: 5,
+    invulnerable: false,
+    invulnerableTimer: 0
 };
 
 let guards = [];
@@ -55,21 +56,24 @@ let guardsEliminated = 0;
 let gameLoopId = null;
 let lastTime = 0;
 
-// Colores
+// Colores mejorados
 const colors = {
     background: '#0f3460',
     ninja: '#2c3e50',
     ninjaStealth: '#3498db',
     ninjaOutline: '#1a252f',
+    ninjaInvulnerable: '#9b59b6',
     guard: '#e74c3c',
-    guardAlert: '#c0392b',
-    guardOutline: '#7f1d1d',
+    guardAlert: '#ff6b6b',
+    guardOutline: '#c0392b',
     platform: '#8B4513',
+    platformTop: '#a0522d',
     platformOutline: '#5D2906',
-    shuriken: '#95a5a6',
-    shurikenOutline: '#7f8c8d',
-    vision: 'rgba(255, 255, 0, 0.1)',
-    visionAlert: 'rgba(255, 0, 0, 0.2)'
+    shuriken: '#ecf0f1',
+    shurikenOutline: '#bdc3c7',
+    vision: 'rgba(255, 255, 0, 0.15)',
+    visionAlert: 'rgba(255, 0, 0, 0.25)',
+    text: '#ecf0f1'
 };
 
 // Inicializar el juego
@@ -80,18 +84,12 @@ function init() {
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
     
-    // Botones
+    // Botones fuera del juego
     startBtn.addEventListener('click', startGame);
+    pauseBtn.addEventListener('click', togglePause);
+    restartBtn.addEventListener('click', resetGame);
     menuBtn.addEventListener('click', goToMenu);
-    playAgainBtn.addEventListener('click', resetGame);
-    nextLevelBtn.addEventListener('click', nextLevel);
-    resumeBtn.addEventListener('click', togglePause);
     
-    // Agregar botón de volver al menú en todas las pantallas
-    document.querySelectorAll('.btn-secondary').forEach(btn => {
-        btn.addEventListener('click', goToMenu);
-    });
-
     // Controles móviles
     mobileBtns.forEach(btn => {
         btn.addEventListener('click', function() {
@@ -101,12 +99,14 @@ function init() {
     });
     
     resetGame();
-    drawGame(); // Dibujar estado inicial
+    drawGame();
 }
 
-// Manejar teclas presionadas - CORREGIDO
+// Manejar teclas presionadas
 function handleKeyDown(e) {
-    keys[e.key] = true;
+    if (e.key in keys) {
+        keys[e.key] = true;
+    }
     
     switch(e.key) {
         case ' ':
@@ -141,7 +141,9 @@ function handleKeyDown(e) {
 
 // Manejar teclas liberadas
 function handleKeyUp(e) {
-    keys[e.key] = false;
+    if (e.key in keys) {
+        keys[e.key] = false;
+    }
     
     switch(e.key) {
         case 'x':
@@ -157,16 +159,19 @@ function handleMobileAction(action) {
     
     if (!gameRunning && action === 'jump') {
         startGame();
+        return;
     }
+    
+    if (!gameRunning) return;
     
     switch(action) {
         case 'left':
             keys['ArrowLeft'] = true;
-            setTimeout(() => { keys['ArrowLeft'] = false; }, 100);
+            setTimeout(() => { keys['ArrowLeft'] = false; }, 200);
             break;
         case 'right':
             keys['ArrowRight'] = true;
-            setTimeout(() => { keys['ArrowRight'] = false; }, 100);
+            setTimeout(() => { keys['ArrowRight'] = false; }, 200);
             break;
         case 'jump':
             jump();
@@ -179,6 +184,8 @@ function handleMobileAction(action) {
 
 // Iniciar el juego
 function startGame() {
+    if (gameRunning) return;
+    
     console.log('Iniciando juego...');
     gameRunning = true;
     gamePaused = false;
@@ -196,7 +203,7 @@ function jump() {
         ninja.velY = jumpForce;
         ninja.jumping = true;
     } else if (!ninja.doubleJump) {
-        ninja.velY = jumpForce * 0.8;
+        ninja.velY = jumpForce * 0.9;
         ninja.doubleJump = true;
     }
 }
@@ -205,20 +212,21 @@ function jump() {
 function throwShuriken() {
     if (!gameRunning || gamePaused || ninja.shurikens <= 0) return;
     
-    shurikens.push({
-        x: ninja.facingRight ? ninja.x + ninja.width : ninja.x,
-        y: ninja.y + ninja.height / 2,
+    const shuriken = {
+        x: ninja.facingRight ? ninja.x + ninja.width : ninja.x - 8,
+        y: ninja.y + ninja.height / 2 - 4,
         width: 8,
         height: 8,
-        speed: ninja.facingRight ? 8 : -8,
+        speed: ninja.facingRight ? 12 : -12,
         active: true
-    });
+    };
     
+    shurikens.push(shuriken);
     ninja.shurikens--;
     updateUI();
 }
 
-// Pausar/Reanudar - MEJORADO
+// Pausar/Reanudar
 function togglePause() {
     if (!gameRunning) return;
     
@@ -246,13 +254,19 @@ function updateUI() {
 function resetGame() {
     console.log('Reiniciando juego...');
     
+    // Detener juego actual
+    gameRunning = false;
+    gamePaused = false;
+    if (gameLoopId) {
+        cancelAnimationFrame(gameLoopId);
+        gameLoopId = null;
+    }
+    
     // Resetear variables
     level = 1;
     lives = 3;
     score = 0;
     guardsEliminated = 0;
-    gameRunning = false;
-    gamePaused = false;
     
     // Resetear ninja
     ninja.x = 50;
@@ -264,6 +278,8 @@ function resetGame() {
     ninja.stealth = false;
     ninja.facingRight = true;
     ninja.shurikens = 5;
+    ninja.invulnerable = false;
+    ninja.invulnerableTimer = 0;
     
     // Limpiar arrays
     guards = [];
@@ -284,14 +300,10 @@ function resetGame() {
     // Resetear estrellas
     stars.forEach(star => star.classList.remove('active'));
     
-    // Limpiar bucle anterior
-    if (gameLoopId) {
-        cancelAnimationFrame(gameLoopId);
-        gameLoopId = null;
-    }
+    drawGame();
 }
 
-// Configurar nivel - MEJORADO
+// Configurar nivel - COMPLETAMENTE REESCRITO
 function setupLevel() {
     // Configurar plataformas
     platforms = [
@@ -304,38 +316,38 @@ function setupLevel() {
         {x: 300, y: 100, width: 80, height: 15}
     ];
     
-    // Configurar guardias según nivel - MEJORADO
+    // Configurar guardias - POSICIONES CORREGIDAS
     guards = [];
-    let guardCount = 2 + level;
+    const guardPositions = [
+        {x: 100, y: 350, patrolMin: 80, patrolMax: 180},
+        {x: 280, y: 350, patrolMin: 250, patrolMax: 350},
+        {x: 150, y: 250, patrolMin: 120, patrolMax: 220},
+        {x: 320, y: 200, patrolMin: 290, patrolMax: 370}
+    ];
+    
+    const guardCount = Math.min(2 + level, guardPositions.length);
     
     for (let i = 0; i < guardCount; i++) {
-        const patrolRange = 100 + (level * 20);
-        const startX = 80 + (i * 120) % 320;
-        
+        const pos = guardPositions[i];
         guards.push({
-            x: startX,
-            y: getGuardYPosition(i),
-            width: 20,
-            height: 30,
-            speed: 1 + (level * 0.3),
-            direction: Math.random() > 0.5 ? 1 : -1,
-            visionRange: 100 + (level * 10),
+            x: pos.x,
+            y: pos.y - 30, // Ajustar para que estén sobre la plataforma
+            width: 22,
+            height: 32,
+            speed: 1.5 + (level * 0.4),
+            direction: i % 2 === 0 ? 1 : -1,
+            visionRange: 120 + (level * 15),
             alert: false,
-            patrolMin: Math.max(50, startX - patrolRange/2),
-            patrolMax: Math.min(350, startX + patrolRange/2),
+            patrolMin: pos.patrolMin,
+            patrolMax: pos.patrolMax,
             alive: true,
             detectionCounter: 0
         });
     }
     
     // Resetear shurikens del ninja
-    ninja.shurikens = 5 + level;
-}
-
-// Obtener posición Y del guardia según índice
-function getGuardYPosition(index) {
-    const positions = [350, 350, 250, 250, 150, 150];
-    return positions[index % positions.length];
+    ninja.shurikens = 5 + level * 2;
+    updateUI();
 }
 
 // Siguiente nivel
@@ -346,7 +358,6 @@ function nextLevel() {
     levelCompleteElement.style.display = 'none';
     
     setupLevel();
-    updateUI();
     startScreen.style.display = 'flex';
     drawGame();
 }
@@ -356,6 +367,7 @@ function startGameLoop() {
     if (gameLoopId) {
         cancelAnimationFrame(gameLoopId);
     }
+    lastTime = performance.now();
     gameLoopId = requestAnimationFrame(gameLoop);
 }
 
@@ -365,7 +377,7 @@ function gameLoop(timestamp) {
         return;
     }
     
-    const deltaTime = timestamp - lastTime;
+    const deltaTime = Math.min(timestamp - lastTime, 100) / 16.67;
     lastTime = timestamp;
     
     updateGame(deltaTime);
@@ -374,10 +386,15 @@ function gameLoop(timestamp) {
     gameLoopId = requestAnimationFrame(gameLoop);
 }
 
-// Actualizar estado del juego - MEJORADO
+// Actualizar estado del juego - COMPLETAMENTE REESCRITO
 function updateGame(deltaTime) {
-    // Normalizar deltaTime para movimientos consistentes
-    const timeFactor = deltaTime / 16; // 60fps como referencia
+    // Actualizar invulnerabilidad
+    if (ninja.invulnerable) {
+        ninja.invulnerableTimer -= deltaTime;
+        if (ninja.invulnerableTimer <= 0) {
+            ninja.invulnerable = false;
+        }
+    }
     
     // Movimiento del ninja
     if (keys['ArrowLeft']) {
@@ -394,66 +411,98 @@ function updateGame(deltaTime) {
     // Aplicar gravedad
     ninja.velY += gravity;
     
-    // Actualizar posición del ninja
-    ninja.x += ninja.velX * timeFactor;
-    ninja.y += ninja.velY * timeFactor;
+    // Actualizar posición X
+    ninja.x += ninja.velX * deltaTime;
     
-    // Limitar movimiento dentro del canvas
-    if (ninja.x < 0) ninja.x = 0;
-    if (ninja.x + ninja.width > canvas.width) ninja.x = canvas.width - ninja.width;
+    // Limitar movimiento horizontal
+    if (ninja.x < 0) {
+        ninja.x = 0;
+        ninja.velX = 0;
+    } else if (ninja.x + ninja.width > canvas.width) {
+        ninja.x = canvas.width - ninja.width;
+        ninja.velX = 0;
+    }
     
-    // Caer fuera de la pantalla - perder vida
-    if (ninja.y > canvas.height) {
+    // Actualizar posición Y
+    ninja.y += ninja.velY * deltaTime;
+    
+    // CAER FUERA DE LA PANTALLA - AHORA SÍ FUNCIONA
+    if (ninja.y > canvas.height + 50) {
         loseLife();
         return;
     }
     
-    // Detección de colisión con plataformas
+    // Detección de colisión con plataformas - MEJORADO
     let onGround = false;
     for (let platform of platforms) {
-        if (checkCollision(ninja, platform)) {
-            // Colisión vertical (aterrizando)
-            if (ninja.velY > 0 && ninja.y + ninja.height > platform.y && ninja.y < platform.y) {
-                ninja.y = platform.y - ninja.height;
-                ninja.velY = 0;
-                ninja.jumping = false;
-                ninja.doubleJump = false;
-                onGround = true;
-            }
-            // Colisión desde abajo
-            else if (ninja.velY < 0 && ninja.y < platform.y + platform.height) {
-                ninja.y = platform.y + platform.height;
-                ninja.velY = 0;
-            }
-            // Colisión horizontal
-            if (ninja.velX > 0 && ninja.x + ninja.width > platform.x && ninja.x < platform.x) {
-                ninja.x = platform.x - ninja.width;
-            } else if (ninja.velX < 0 && ninja.x < platform.x + platform.width && ninja.x + ninja.width > platform.x + platform.width) {
-                ninja.x = platform.x + platform.width;
-            }
+        // Colisión vertical (aterrizando)
+        if (ninja.velY > 0 && 
+            ninja.x + ninja.width > platform.x + 5 &&
+            ninja.x < platform.x + platform.width - 5 &&
+            ninja.y + ninja.height > platform.y &&
+            ninja.y + ninja.height < platform.y + 10) {
+            
+            ninja.y = platform.y - ninja.height;
+            ninja.velY = 0;
+            ninja.jumping = false;
+            ninja.doubleJump = false;
+            onGround = true;
+        }
+        
+        // Colisión desde abajo
+        if (ninja.velY < 0 &&
+            ninja.x + ninja.width > platform.x &&
+            ninja.x < platform.x + platform.width &&
+            ninja.y < platform.y + platform.height &&
+            ninja.y + ninja.height > platform.y + platform.height) {
+            
+            ninja.y = platform.y + platform.height;
+            ninja.velY = 0;
+        }
+        
+        // Colisión horizontal izquierda
+        if (ninja.velX > 0 &&
+            ninja.x + ninja.width > platform.x &&
+            ninja.x < platform.x &&
+            ninja.y + ninja.height > platform.y + 5 &&
+            ninja.y < platform.y + platform.height - 5) {
+            
+            ninja.x = platform.x - ninja.width;
+            ninja.velX = 0;
+        }
+        
+        // Colisión horizontal derecha
+        if (ninja.velX < 0 &&
+            ninja.x < platform.x + platform.width &&
+            ninja.x + ninja.width > platform.x + platform.width &&
+            ninja.y + ninja.height > platform.y + 5 &&
+            ninja.y < platform.y + platform.height - 5) {
+            
+            ninja.x = platform.x + platform.width;
+            ninja.velX = 0;
         }
     }
     
-    // Actualizar guardias - MEJORADO
-    updateGuards(timeFactor);
+    // Actualizar guardias - SISTEMA COMPLETAMENTE FUNCIONAL
+    updateGuards(deltaTime);
     
-    // Actualizar shurikens
-    updateShurikens(timeFactor);
+    // Actualizar shurikens - CORREGIDO
+    updateShurikens(deltaTime);
     
     // Verificar si todos los guardias fueron eliminados
     const aliveGuards = guards.filter(guard => guard.alive);
     if (aliveGuards.length === 0) {
-        levelComplete();
+        setTimeout(() => levelComplete(), 500);
     }
 }
 
-// Actualizar guardias - COMPLETAMENTE REESCRITO
-function updateGuards(timeFactor) {
+// Actualizar guardias - AHORA SÍ FUNCIONAN
+function updateGuards(deltaTime) {
     for (let guard of guards) {
         if (!guard.alive) continue;
         
         // Movimiento de patrulla
-        guard.x += guard.speed * guard.direction * timeFactor;
+        guard.x += guard.speed * guard.direction * deltaTime;
         
         // Cambiar dirección en límites de patrulla
         if (guard.x <= guard.patrolMin) {
@@ -464,51 +513,52 @@ function updateGuards(timeFactor) {
             guard.x = guard.patrolMax - guard.width;
         }
         
-        // Detección del ninja - SISTEMA MEJORADO
-        const dx = (ninja.x + ninja.width/2) - (guard.x + guard.width/2);
-        const dy = (ninja.y + ninja.height/2) - (guard.y + guard.height/2);
-        const distance = Math.sqrt(dx*dx + dy*dy);
-        
-        let canSeeNinja = false;
-        
-        if (!ninja.stealth && distance < guard.visionRange) {
-            // Verificar si el ninja está en el campo de visión
-            const angleToNinja = Math.atan2(dy, dx);
-            const guardDirection = guard.direction === 1 ? 0 : Math.PI;
-            const angleDiff = Math.abs(angleToNinja - guardDirection);
+        // DETECCIÓN DEL NINJA - SISTEMA FUNCIONAL
+        if (!ninja.invulnerable) {
+            const dx = (ninja.x + ninja.width/2) - (guard.x + guard.width/2);
+            const dy = (ninja.y + ninja.height/2) - (guard.y + guard.height/2);
+            const distance = Math.sqrt(dx*dx + dy*dy);
             
-            // Campo de visión de 90 grados
-            if (angleDiff < Math.PI/2 || angleDiff > 3*Math.PI/2) {
-                // Verificar que no haya plataformas en medio (simplificado)
-                canSeeNinja = true;
-            }
-        }
-        
-        if (canSeeNinja) {
-            guard.alert = true;
-            guard.detectionCounter++;
+            let canSeeNinja = false;
             
-            // Si detecta al ninja por suficiente tiempo, pierde vida
-            if (guard.detectionCounter > 60 && distance < 40) { // 1 segundo aprox
-                loseLife();
-                guard.detectionCounter = 0;
+            if (!ninja.stealth && distance < guard.visionRange) {
+                // Verificar dirección de la visión
+                const angleToNinja = Math.atan2(dy, dx);
+                const guardFacing = guard.direction > 0 ? 0 : Math.PI;
+                const angleDiff = Math.abs(angleToNinja - guardFacing);
+                
+                // Campo de visión de 100 grados
+                if (angleDiff < Math.PI/1.8 || angleDiff > Math.PI*1.2) {
+                    canSeeNinja = true;
+                }
             }
-        } else {
-            guard.alert = false;
-            guard.detectionCounter = Math.max(0, guard.detectionCounter - 1);
+            
+            if (canSeeNinja) {
+                guard.alert = true;
+                guard.detectionCounter++;
+                
+                // Si detecta al ninja por suficiente tiempo, pierde vida
+                if (guard.detectionCounter > 45 && distance < 50) {
+                    loseLife();
+                    guard.detectionCounter = 0;
+                }
+            } else {
+                guard.alert = false;
+                guard.detectionCounter = Math.max(0, guard.detectionCounter - 2);
+            }
         }
     }
 }
 
-// Actualizar shurikens
-function updateShurikens(timeFactor) {
+// Actualizar shurikens - CORREGIDO PARA QUE ELIMINEN GUARDIAS
+function updateShurikens(deltaTime) {
     for (let i = shurikens.length - 1; i >= 0; i--) {
         const shuriken = shurikens[i];
         
         // Mover shuriken
-        shuriken.x += shuriken.speed * timeFactor;
+        shuriken.x += shuriken.speed * deltaTime;
         
-        // Verificar colisión con guardias
+        // Verificar colisión con guardias - SISTEMA FUNCIONAL
         let shurikenHit = false;
         for (let j = 0; j < guards.length; j++) {
             const guard = guards[j];
@@ -516,7 +566,7 @@ function updateShurikens(timeFactor) {
                 // Eliminar guardia
                 guard.alive = false;
                 guardsEliminated++;
-                score += 100;
+                score += 100 + (level * 50);
                 updateUI();
                 shurikenHit = true;
                 break;
@@ -524,7 +574,7 @@ function updateShurikens(timeFactor) {
         }
         
         // Eliminar shuriken si golpea o sale de la pantalla
-        if (shurikenHit || shuriken.x < 0 || shuriken.x > canvas.width) {
+        if (shurikenHit || shuriken.x < -20 || shuriken.x > canvas.width + 20) {
             shurikens.splice(i, 1);
         }
     }
@@ -538,10 +588,16 @@ function checkCollision(obj1, obj2) {
            obj1.y + obj1.height > obj2.y;
 }
 
-// Perder vida
+// Perder vida - MEJORADO
 function loseLife() {
+    if (ninja.invulnerable) return;
+    
     lives--;
     updateUI();
+    
+    // Efecto de invulnerabilidad
+    ninja.invulnerable = true;
+    ninja.invulnerableTimer = 120; // 2 segundos aprox
     
     if (lives <= 0) {
         gameOver();
@@ -573,10 +629,8 @@ function gameOver() {
     }
     
     // Calcular estrellas
-    let starsEarned = 0;
-    if (level >= 3) starsEarned = 3;
-    else if (level >= 2) starsEarned = 2;
-    else if (level >= 1) starsEarned = 1;
+    let starsEarned = Math.min(3, Math.floor(level / 2));
+    starsEarned = Math.max(1, starsEarned);
     
     // Mostrar estrellas
     stars.forEach((star, index) => {
@@ -599,6 +653,8 @@ function gameOver() {
 
 // Completar nivel
 function levelComplete() {
+    if (!gameRunning) return;
+    
     console.log('Nivel completado!');
     
     gameRunning = false;
@@ -608,7 +664,7 @@ function levelComplete() {
     }
     
     // Calcular estrellas
-    let starsEarned = Math.min(3, Math.floor(level / 2) + 1);
+    let starsEarned = Math.min(3, level);
     
     // Mostrar estrellas
     stars.forEach((star, index) => {
@@ -625,6 +681,13 @@ function levelComplete() {
     // Mostrar pantalla de nivel completado
     nextLevelElement.textContent = level + 1;
     levelCompleteElement.style.display = 'flex';
+    
+    // Auto-siguiente nivel después de 3 segundos
+    setTimeout(() => {
+        if (levelCompleteElement.style.display === 'flex') {
+            nextLevel();
+        }
+    }, 3000);
 }
 
 // Guardar progreso
@@ -635,7 +698,7 @@ function saveProgress(starsEarned) {
         localStorage.setItem('ninja-sombra-highscore', newLevel.toString());
         
         const currentStars = parseInt(localStorage.getItem('ninja-sombra-stars')) || 0;
-        const newStars = Math.max(currentStars, starsEarned);
+        const newStars = currentStars + starsEarned;
         localStorage.setItem('ninja-sombra-stars', newStars.toString());
         
         console.log('Progreso guardado:', { level: newLevel, stars: newStars });
@@ -644,7 +707,7 @@ function saveProgress(starsEarned) {
     }
 }
 
-// Volver al menú - MEJORADO
+// Volver al menú
 function goToMenu() {
     console.log('Volviendo al menú...');
     
@@ -655,40 +718,27 @@ function goToMenu() {
         gameLoopId = null;
     }
     
-    // Intentar diferentes métodos para volver al menú
     try {
-        // Método 1: Si estamos en un iframe/popup
-        if (window.opener && !window.opener.closed) {
-            window.close();
-            return;
-        }
-        
-        // Método 2: Si tenemos un padre
-        if (window.parent !== window) {
-            window.parent.postMessage('closeGame', '*');
-            return;
-        }
-        
-        // Método 3: Navegar al index.html
+        // Intentar navegar al index.html
         const currentPath = window.location.pathname;
         const basePath = currentPath.substring(0, currentPath.lastIndexOf('/'));
-        const indexUrl = basePath ? `${basePath}/index.html` : 'index.html';
+        const indexUrl = basePath ? `${basePath}/index.html` : '../index.html';
         
-        console.log('Navegando a:', indexUrl);
         window.location.href = indexUrl;
-        
     } catch (error) {
         console.error('Error volviendo al menú:', error);
-        // Método de respaldo: Mostrar mensaje
-        alert('Para volver al menú principal, cierra esta pestaña o ventana.');
+        alert('Juego reiniciado. Para volver al menú principal, cierra esta pestaña.');
+        resetGame();
     }
 }
 
-// Dibujar juego
+// =============================================
+// SISTEMA DE DIBUJO MEJORADO
+// =============================================
+
 function drawGame() {
-    // Limpiar canvas
-    ctx.fillStyle = colors.background;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Fondo con gradiente
+    drawBackground();
     
     // Dibujar plataformas
     drawPlatforms();
@@ -701,126 +751,177 @@ function drawGame() {
     
     // Dibujar ninja
     drawNinja();
+    
+    // Efectos visuales
+    drawEffects();
 }
 
-// Dibujar plataformas
-function drawPlatforms() {
-    ctx.fillStyle = colors.platform;
-    ctx.strokeStyle = colors.platformOutline;
-    ctx.lineWidth = 2;
+function drawBackground() {
+    // Gradiente de fondo
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, '#1a1a2e');
+    gradient.addColorStop(1, '#16213e');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     
+    // Estrellas
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    for (let i = 0; i < 20; i++) {
+        const x = (i * 47) % canvas.width;
+        const y = (i * 23) % 200;
+        const size = Math.random() * 1.5 + 0.5;
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+function drawPlatforms() {
     for (let platform of platforms) {
+        // Plataforma principal
+        ctx.fillStyle = colors.platform;
         ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+        
+        // Borde
+        ctx.strokeStyle = colors.platformOutline;
+        ctx.lineWidth = 2;
         ctx.strokeRect(platform.x, platform.y, platform.width, platform.height);
+        
+        // Parte superior (hierba)
+        ctx.fillStyle = colors.platformTop;
+        ctx.fillRect(platform.x, platform.y, platform.width, 4);
         
         // Textura de madera
         ctx.strokeStyle = '#5D2906';
         ctx.lineWidth = 1;
-        for (let i = platform.x + 5; i < platform.x + platform.width; i += 10) {
+        for (let i = platform.x + 8; i < platform.x + platform.width; i += 16) {
             ctx.beginPath();
-            ctx.moveTo(i, platform.y);
+            ctx.moveTo(i, platform.y + 4);
             ctx.lineTo(i, platform.y + platform.height);
             ctx.stroke();
         }
-        ctx.strokeStyle = colors.platformOutline;
-        ctx.lineWidth = 2;
     }
 }
 
-// Dibujar guardias - MEJORADO
 function drawGuards() {
     for (let guard of guards) {
         if (!guard.alive) continue;
+        
+        // Campo de visión
+        ctx.fillStyle = guard.alert ? colors.visionAlert : colors.vision;
+        ctx.beginPath();
+        ctx.moveTo(guard.x + guard.width / 2, guard.y + 10);
+        
+        const startAngle = guard.direction > 0 ? -Math.PI/2.2 : Math.PI/1.1;
+        const endAngle = guard.direction > 0 ? Math.PI/2.2 : Math.PI*1.1;
+        
+        ctx.arc(guard.x + guard.width / 2, guard.y + 10, guard.visionRange, startAngle, endAngle);
+        ctx.closePath();
+        ctx.fill();
         
         // Cuerpo del guardia
         ctx.fillStyle = guard.alert ? colors.guardAlert : colors.guard;
         ctx.fillRect(guard.x, guard.y, guard.width, guard.height);
         
+        // Chaleco
+        ctx.fillStyle = '#c0392b';
+        ctx.fillRect(guard.x + 3, guard.y + 8, guard.width - 6, 12);
+        
         // Cabeza
-        ctx.fillStyle = guard.alert ? '#922b21' : '#7f1d1d';
-        ctx.fillRect(guard.x + 5, guard.y - 10, 10, 10);
+        ctx.fillStyle = '#ffcc99';
+        ctx.fillRect(guard.x + 5, guard.y - 8, 12, 10);
         
         // Ojos (mirando en la dirección que patrulla)
-        ctx.fillStyle = '#ecf0f1';
-        if (guard.direction === 1) {
-            ctx.fillRect(guard.x + 13, guard.y - 7, 3, 3);
+        ctx.fillStyle = '#2c3e50';
+        if (guard.direction > 0) {
+            ctx.fillRect(guard.x + 12, guard.y - 5, 2, 2);
         } else {
-            ctx.fillRect(guard.x + 4, guard.y - 7, 3, 3);
+            ctx.fillRect(guard.x + 7, guard.y - 5, 2, 2);
         }
-        
-        // Campo de visión - MEJORADO
-        ctx.fillStyle = guard.alert ? colors.visionAlert : colors.vision;
-        ctx.beginPath();
-        ctx.moveTo(guard.x + guard.width / 2, guard.y);
-        
-        const startAngle = guard.direction === 1 ? -Math.PI/3 : Math.PI*2/3;
-        const endAngle = guard.direction === 1 ? Math.PI/3 : Math.PI*4/3;
-        
-        ctx.arc(guard.x + guard.width / 2, guard.y, guard.visionRange, startAngle, endAngle);
-        ctx.closePath();
-        ctx.fill();
         
         // Indicador de alerta
         if (guard.alert) {
             ctx.fillStyle = '#ff0000';
-            ctx.font = '8px Arial';
-            ctx.fillText('!', guard.x + 8, guard.y - 15);
+            ctx.font = '10px Press Start 2P';
+            ctx.fillText('!', guard.x + 8, guard.y - 12);
         }
+        
+        // Borde
+        ctx.strokeStyle = colors.guardOutline;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(guard.x, guard.y, guard.width, guard.height);
     }
 }
 
-// Dibujar shurikens
 function drawShurikens() {
-    ctx.fillStyle = colors.shuriken;
-    ctx.strokeStyle = colors.shurikenOutline;
-    ctx.lineWidth = 1;
-    
     for (let shuriken of shurikens) {
         // Cuerpo del shuriken
+        ctx.fillStyle = colors.shuriken;
+        ctx.strokeStyle = colors.shurikenOutline;
+        ctx.lineWidth = 2;
+        
         ctx.beginPath();
-        ctx.arc(shuriken.x, shuriken.y, shuriken.width / 2, 0, Math.PI * 2);
+        ctx.arc(shuriken.x + 4, shuriken.y + 4, 6, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
         
-        // Puntas del shuriken
+        // Puntas del shuriken (girando)
+        ctx.strokeStyle = '#34495e';
+        ctx.lineWidth = 2;
+        
+        const rotation = Date.now() * 0.01;
+        const cos = Math.cos(rotation);
+        const sin = Math.sin(rotation);
+        
         ctx.beginPath();
-        ctx.moveTo(shuriken.x - 6, shuriken.y);
-        ctx.lineTo(shuriken.x + 6, shuriken.y);
-        ctx.moveTo(shuriken.x, shuriken.y - 6);
-        ctx.lineTo(shuriken.x, shuriken.y + 6);
+        ctx.moveTo(shuriken.x + 4 + cos * 6, shuriken.y + 4 + sin * 6);
+        ctx.lineTo(shuriken.x + 4 - cos * 6, shuriken.y + 4 - sin * 6);
+        ctx.moveTo(shuriken.x + 4 + sin * 6, shuriken.y + 4 - cos * 6);
+        ctx.lineTo(shuriken.x + 4 - sin * 6, shuriken.y + 4 + cos * 6);
         ctx.stroke();
     }
 }
 
-// Dibujar ninja - MEJORADO
 function drawNinja() {
+    const ninjaColor = ninja.invulnerable ? colors.ninjaInvulnerable : 
+                      ninja.stealth ? colors.ninjaStealth : colors.ninja;
+    
     // Efecto de sigilo
     if (ninja.stealth) {
-        ctx.fillStyle = 'rgba(52, 152, 219, 0.3)';
+        ctx.fillStyle = 'rgba(52, 152, 219, 0.2)';
         ctx.beginPath();
-        ctx.arc(ninja.x + ninja.width/2, ninja.y + ninja.height/2, 25, 0, Math.PI * 2);
+        ctx.arc(ninja.x + ninja.width/2, ninja.y + ninja.height/2, 30, 0, Math.PI * 2);
         ctx.fill();
     }
     
+    // Efecto de invulnerabilidad (parpadeo)
+    if (ninja.invulnerable && Math.floor(ninja.invulnerableTimer / 5) % 2 === 0) {
+        return; // Parpadeo
+    }
+    
     // Cuerpo del ninja
-    ctx.fillStyle = ninja.stealth ? colors.ninjaStealth : colors.ninja;
+    ctx.fillStyle = ninjaColor;
     ctx.fillRect(ninja.x, ninja.y, ninja.width, ninja.height);
     
     // Cabeza
     ctx.fillStyle = ninja.stealth ? '#2980b9' : '#1a252f';
-    ctx.fillRect(ninja.x + 5, ninja.y - 8, 10, 8);
+    ctx.fillRect(ninja.x + 7, ninja.y - 6, 11, 8);
     
     // Máscara
-    ctx.fillStyle = '#2c3e50';
-    ctx.fillRect(ninja.x + 3, ninja.y - 5, 14, 4);
+    ctx.fillStyle = ninja.stealth ? '#3498db' : '#2c3e50';
+    ctx.fillRect(ninja.x + 5, ninja.y - 3, 15, 4);
     
-    // Ojos (dependiendo de la dirección)
-    ctx.fillStyle = ninja.stealth ? '#3498db' : '#ecf0f1';
+    // Ojos
+    ctx.fillStyle = ninja.stealth ? '#ecf0f1' : '#e74c3c';
     if (ninja.facingRight) {
-        ctx.fillRect(ninja.x + 13, ninja.y - 4, 3, 2);
+        ctx.fillRect(ninja.x + 15, ninja.y - 2, 2, 2);
     } else {
-        ctx.fillRect(ninja.x + 4, ninja.y - 4, 3, 2);
+        ctx.fillRect(ninja.x + 8, ninja.y - 2, 2, 2);
     }
+    
+    // Cinturón
+    ctx.fillStyle = '#c0392b';
+    ctx.fillRect(ninja.x + 5, ninja.y + 25, ninja.width - 10, 3);
     
     // Borde
     ctx.strokeStyle = colors.ninjaOutline;
@@ -830,17 +931,20 @@ function drawNinja() {
     // Indicador de doble salto disponible
     if (!ninja.doubleJump && !ninja.jumping) {
         ctx.fillStyle = '#27ae60';
-        ctx.font = '8px Arial';
-        ctx.fillText('2x', ninja.x + 5, ninja.y - 12);
+        ctx.font = '8px Press Start 2P';
+        ctx.fillText('2x', ninja.x + 8, ninja.y - 10);
+    }
+}
+
+function drawEffects() {
+    // Efectos visuales adicionales
+    if (ninja.invulnerable) {
+        ctx.fillStyle = 'rgba(155, 89, 182, 0.3)';
+        ctx.beginPath();
+        ctx.arc(ninja.x + ninja.width/2, ninja.y + ninja.height/2, 25, 0, Math.PI * 2);
+        ctx.fill();
     }
 }
 
 // Iniciar cuando se carga la página
 window.addEventListener('load', init);
-
-// Manejar mensajes para cerrar el juego
-window.addEventListener('message', function(event) {
-    if (event.data === 'closeGame') {
-        window.close();
-    }
-});

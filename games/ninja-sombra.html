@@ -98,7 +98,7 @@
             background: #0f3460;
         }
         
-        .controls {
+        .game-controls {
             margin-top: 20px;
             text-align: center;
             color: #a9b7c6;
@@ -160,10 +160,11 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: linear-gradient(145deg, #16213e, #0f3460);
+            background: linear-gradient(145deg, rgba(22, 33, 62, 0.95), rgba(15, 52, 96, 0.95));
             padding: 30px;
             text-align: center;
             z-index: 100;
+            backdrop-filter: blur(5px);
         }
         
         .start-screen {
@@ -352,10 +353,6 @@
                 <h2>🥷 EL NINJA SOMBRA</h2>
                 <p>ELIMINA GUARDIAS SIN SER VISTO</p>
                 <p>USA SHURIKENS Y MODO SIGILO</p>
-                <div class="buttons">
-                    <button class="btn" id="startBtn">INICIAR JUEGO</button>
-                    <button class="btn btn-secondary" id="menuBtn">VOLVER AL MENÚ</button>
-                </div>
             </div>
             
             <div class="game-over" id="gameOver">
@@ -369,7 +366,6 @@
                     <span class="star">⭐</span>
                 </div>
                 <p>ESTRELLAS: <span id="earnedStars">0</span></p>
-                <button class="btn" id="playAgainBtn">JUGAR DE NUEVO</button>
             </div>
             
             <div class="level-complete" id="levelComplete">
@@ -381,13 +377,29 @@
                     <span class="star">⭐</span>
                     <span class="star">⭐</span>
                 </div>
-                <button class="btn" id="nextLevelBtn">SIGUIENTE NIVEL</button>
             </div>
             
             <div class="paused-screen" id="pausedScreen">
                 <h2>⏸️ JUEGO PAUSADO</h2>
                 <p>Presiona ESPACIO para reanudar</p>
-                <button class="btn" id="resumeBtn">REANUDAR JUEGO</button>
+            </div>
+        </div>
+        
+        <!-- BOTONES FUERA DEL JUEGO -->
+        <div class="game-controls">
+            <div class="controls-info">
+                <p>← → PARA MOVERTE</p>
+                <p>ESPACIO PARA SALTAR (DOBLE SALTO)</p>
+                <p>Z PARA LANZAR SHURIKEN</p>
+                <p>X PARA MODO SIGILO</p>
+                <p>P PARA PAUSAR</p>
+                <p>¡ELIMINA GUARDIAS SIN SER VISTO! 👮</p>
+            </div>
+            <div class="buttons">
+                <button class="btn" id="startBtn">INICIAR JUEGO</button>
+                <button class="btn" id="pauseBtn">PAUSAR</button>
+                <button class="btn" id="restartBtn">REINICIAR</button>
+                <button class="btn btn-secondary" id="menuBtn">VOLVER AL MENÚ</button>
             </div>
         </div>
         
@@ -398,16 +410,6 @@
                 <div class="mobile-btn center-btn" data-direction="jump">⤴️</div>
                 <div class="mobile-btn" style="grid-column: 3; grid-row: 2;" data-direction="right">→</div>
                 <div class="mobile-btn action-btn" data-direction="shuriken">🎯</div>
-            </div>
-        </div>
-        
-        <div class="controls">
-            <div class="controls-info">
-                <p>← → PARA MOVERTE</p>
-                <p>ESPACIO PARA SALTAR (DOBLE SALTO)</p>
-                <p>Z PARA LANZAR SHURIKEN</p>
-                <p>X PARA MODO SIGILO</p>
-                <p>¡ELIMINA GUARDIAS SIN SER VISTO! 👮</p>
             </div>
         </div>
     </div>
