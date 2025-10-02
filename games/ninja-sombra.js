@@ -1,4 +1,4 @@
-// ninja-sombra.js - Juego de acción ninja (CÓDIGO COMPLETAMENTE CORREGIDO)
+// ninja-sombra.js - Juego de acción ninja (MOVIMIENTO CORREGIDO)
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -51,7 +51,13 @@ let lives = 3;
 let score = 0;
 let gameRunning = false;
 let gamePaused = false;
-let keys = {};
+let keys = {
+    'ArrowLeft': false,
+    'ArrowRight': false,
+    ' ': false,
+    'z': false,
+    'x': false
+};
 let guardsEliminated = 0;
 let gameLoopId = null;
 let lastTime = 0;
@@ -80,7 +86,7 @@ const colors = {
 function init() {
     console.log('Inicializando El Ninja Sombra...');
     
-    // Configurar event listeners
+    // Configurar event listeners CORREGIDOS
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
     
@@ -92,7 +98,14 @@ function init() {
     
     // Controles móviles
     mobileBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            const action = this.getAttribute('data-direction');
+            handleMobileAction(action);
+        });
+        
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
             const action = this.getAttribute('data-direction');
             handleMobileAction(action);
         });
@@ -102,13 +115,17 @@ function init() {
     drawGame();
 }
 
-// Manejar teclas presionadas
+// Manejar teclas presionadas - CORREGIDO
 function handleKeyDown(e) {
-    if (e.key in keys) {
-        keys[e.key] = true;
-    }
+    console.log('Tecla presionada:', e.key);
     
     switch(e.key) {
+        case 'ArrowLeft':
+            keys.ArrowLeft = true;
+            break;
+        case 'ArrowRight':
+            keys.ArrowRight = true;
+            break;
         case ' ':
             e.preventDefault();
             if (!gameRunning && !gamePaused) {
@@ -139,13 +156,17 @@ function handleKeyDown(e) {
     }
 }
 
-// Manejar teclas liberadas
+// Manejar teclas liberadas - CORREGIDO
 function handleKeyUp(e) {
-    if (e.key in keys) {
-        keys[e.key] = false;
-    }
+    console.log('Tecla liberada:', e.key);
     
     switch(e.key) {
+        case 'ArrowLeft':
+            keys.ArrowLeft = false;
+            break;
+        case 'ArrowRight':
+            keys.ArrowRight = false;
+            break;
         case 'x':
         case 'X':
             ninja.stealth = false;
@@ -153,8 +174,10 @@ function handleKeyUp(e) {
     }
 }
 
-// Manejar acciones móviles
+// Manejar acciones móviles - CORREGIDO
 function handleMobileAction(action) {
+    console.log('Acción móvil:', action);
+    
     if (gamePaused) return;
     
     if (!gameRunning && action === 'jump') {
@@ -166,12 +189,18 @@ function handleMobileAction(action) {
     
     switch(action) {
         case 'left':
-            keys['ArrowLeft'] = true;
-            setTimeout(() => { keys['ArrowLeft'] = false; }, 200);
+            keys.ArrowLeft = true;
+            setTimeout(() => { 
+                keys.ArrowLeft = false;
+                console.log('Left released');
+            }, 200);
             break;
         case 'right':
-            keys['ArrowRight'] = true;
-            setTimeout(() => { keys['ArrowRight'] = false; }, 200);
+            keys.ArrowRight = true;
+            setTimeout(() => { 
+                keys.ArrowRight = false;
+                console.log('Right released');
+            }, 200);
             break;
         case 'jump':
             jump();
@@ -202,9 +231,11 @@ function jump() {
     if (!ninja.jumping) {
         ninja.velY = jumpForce;
         ninja.jumping = true;
+        console.log('Primer salto');
     } else if (!ninja.doubleJump) {
         ninja.velY = jumpForce * 0.9;
         ninja.doubleJump = true;
+        console.log('Doble salto');
     }
 }
 
@@ -224,6 +255,7 @@ function throwShuriken() {
     shurikens.push(shuriken);
     ninja.shurikens--;
     updateUI();
+    console.log('Shuriken lanzado. Quedan:', ninja.shurikens);
 }
 
 // Pausar/Reanudar
@@ -235,10 +267,12 @@ function togglePause() {
     if (gamePaused) {
         pausedScreen.style.display = 'flex';
         cancelAnimationFrame(gameLoopId);
+        console.log('Juego pausado');
     } else {
         pausedScreen.style.display = 'none';
         lastTime = performance.now();
         startGameLoop();
+        console.log('Juego reanudado');
     }
 }
 
@@ -281,6 +315,10 @@ function resetGame() {
     ninja.invulnerable = false;
     ninja.invulnerableTimer = 0;
     
+    // Resetear teclas
+    keys.ArrowLeft = false;
+    keys.ArrowRight = false;
+    
     // Limpiar arrays
     guards = [];
     shurikens = [];
@@ -303,7 +341,7 @@ function resetGame() {
     drawGame();
 }
 
-// Configurar nivel - COMPLETAMENTE REESCRITO
+// Configurar nivel
 function setupLevel() {
     // Configurar plataformas
     platforms = [
@@ -316,7 +354,7 @@ function setupLevel() {
         {x: 300, y: 100, width: 80, height: 15}
     ];
     
-    // Configurar guardias - POSICIONES CORREGIDAS
+    // Configurar guardias
     guards = [];
     const guardPositions = [
         {x: 100, y: 350, patrolMin: 80, patrolMax: 180},
@@ -331,7 +369,7 @@ function setupLevel() {
         const pos = guardPositions[i];
         guards.push({
             x: pos.x,
-            y: pos.y - 30, // Ajustar para que estén sobre la plataforma
+            y: pos.y - 30,
             width: 22,
             height: 32,
             speed: 1.5 + (level * 0.4),
@@ -371,7 +409,7 @@ function startGameLoop() {
     gameLoopId = requestAnimationFrame(gameLoop);
 }
 
-// Bucle principal del juego - MEJORADO
+// Bucle principal del juego - MOVIMIENTO CORREGIDO
 function gameLoop(timestamp) {
     if (!gameRunning || gamePaused) {
         return;
@@ -386,8 +424,13 @@ function gameLoop(timestamp) {
     gameLoopId = requestAnimationFrame(gameLoop);
 }
 
-// Actualizar estado del juego - COMPLETAMENTE REESCRITO
+// Actualizar estado del juego - MOVIMIENTO CORREGIDO
 function updateGame(deltaTime) {
+    // Debug: mostrar estado de teclas
+    if (Math.random() < 0.01) { // Solo mostrar ocasionalmente para no saturar la consola
+        console.log('Teclas:', keys);
+    }
+    
     // Actualizar invulnerabilidad
     if (ninja.invulnerable) {
         ninja.invulnerableTimer -= deltaTime;
@@ -396,43 +439,40 @@ function updateGame(deltaTime) {
         }
     }
     
-    // Movimiento del ninja
-    if (keys['ArrowLeft']) {
+    // MOVIMIENTO DEL NINJA - CORREGIDO
+    if (keys.ArrowLeft) {
         ninja.velX = -ninja.speed;
         ninja.facingRight = false;
-    } else if (keys['ArrowRight']) {
+        console.log('Moviendo izquierda');
+    } else if (keys.ArrowRight) {
         ninja.velX = ninja.speed;
         ninja.facingRight = true;
+        console.log('Moviendo derecha');
     } else {
-        ninja.velX *= 0.8; // Fricción
-        if (Math.abs(ninja.velX) < 0.5) ninja.velX = 0;
+        ninja.velX = 0; // Detener inmediatamente al soltar tecla
     }
     
     // Aplicar gravedad
     ninja.velY += gravity;
     
-    // Actualizar posición X
+    // Actualizar posición
     ninja.x += ninja.velX * deltaTime;
+    ninja.y += ninja.velY * deltaTime;
     
     // Limitar movimiento horizontal
     if (ninja.x < 0) {
         ninja.x = 0;
-        ninja.velX = 0;
     } else if (ninja.x + ninja.width > canvas.width) {
         ninja.x = canvas.width - ninja.width;
-        ninja.velX = 0;
     }
     
-    // Actualizar posición Y
-    ninja.y += ninja.velY * deltaTime;
-    
-    // CAER FUERA DE LA PANTALLA - AHORA SÍ FUNCIONA
+    // Caer fuera de la pantalla
     if (ninja.y > canvas.height + 50) {
         loseLife();
         return;
     }
     
-    // Detección de colisión con plataformas - MEJORADO
+    // Detección de colisión con plataformas
     let onGround = false;
     for (let platform of platforms) {
         // Colisión vertical (aterrizando)
@@ -483,10 +523,10 @@ function updateGame(deltaTime) {
         }
     }
     
-    // Actualizar guardias - SISTEMA COMPLETAMENTE FUNCIONAL
+    // Actualizar guardias
     updateGuards(deltaTime);
     
-    // Actualizar shurikens - CORREGIDO
+    // Actualizar shurikens
     updateShurikens(deltaTime);
     
     // Verificar si todos los guardias fueron eliminados
@@ -496,7 +536,7 @@ function updateGame(deltaTime) {
     }
 }
 
-// Actualizar guardias - AHORA SÍ FUNCIONAN
+// Actualizar guardias
 function updateGuards(deltaTime) {
     for (let guard of guards) {
         if (!guard.alive) continue;
@@ -513,7 +553,7 @@ function updateGuards(deltaTime) {
             guard.x = guard.patrolMax - guard.width;
         }
         
-        // DETECCIÓN DEL NINJA - SISTEMA FUNCIONAL
+        // Detección del ninja
         if (!ninja.invulnerable) {
             const dx = (ninja.x + ninja.width/2) - (guard.x + guard.width/2);
             const dy = (ninja.y + ninja.height/2) - (guard.y + guard.height/2);
@@ -550,7 +590,7 @@ function updateGuards(deltaTime) {
     }
 }
 
-// Actualizar shurikens - CORREGIDO PARA QUE ELIMINEN GUARDIAS
+// Actualizar shurikens
 function updateShurikens(deltaTime) {
     for (let i = shurikens.length - 1; i >= 0; i--) {
         const shuriken = shurikens[i];
@@ -558,7 +598,7 @@ function updateShurikens(deltaTime) {
         // Mover shuriken
         shuriken.x += shuriken.speed * deltaTime;
         
-        // Verificar colisión con guardias - SISTEMA FUNCIONAL
+        // Verificar colisión con guardias
         let shurikenHit = false;
         for (let j = 0; j < guards.length; j++) {
             const guard = guards[j];
@@ -569,6 +609,7 @@ function updateShurikens(deltaTime) {
                 score += 100 + (level * 50);
                 updateUI();
                 shurikenHit = true;
+                console.log('Guardia eliminado!');
                 break;
             }
         }
@@ -588,7 +629,7 @@ function checkCollision(obj1, obj2) {
            obj1.y + obj1.height > obj2.y;
 }
 
-// Perder vida - MEJORADO
+// Perder vida
 function loseLife() {
     if (ninja.invulnerable) return;
     
@@ -597,7 +638,7 @@ function loseLife() {
     
     // Efecto de invulnerabilidad
     ninja.invulnerable = true;
-    ninja.invulnerableTimer = 120; // 2 segundos aprox
+    ninja.invulnerableTimer = 120;
     
     if (lives <= 0) {
         gameOver();
@@ -615,6 +656,8 @@ function loseLife() {
             guard.alert = false;
             guard.detectionCounter = 0;
         });
+        
+        console.log('Vida perdida. Vidas restantes:', lives);
     }
 }
 
@@ -733,7 +776,7 @@ function goToMenu() {
 }
 
 // =============================================
-// SISTEMA DE DIBUJO MEJORADO
+// SISTEMA DE DIBUJO
 // =============================================
 
 function drawGame() {
@@ -948,3 +991,10 @@ function drawEffects() {
 
 // Iniciar cuando se carga la página
 window.addEventListener('load', init);
+
+// Prevenir comportamiento por defecto en teclas
+window.addEventListener('keydown', function(e) {
+    if(['ArrowLeft', 'ArrowRight', ' ', 'x', 'z'].includes(e.key)) {
+        e.preventDefault();
+    }
+});
