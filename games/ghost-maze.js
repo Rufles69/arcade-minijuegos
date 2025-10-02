@@ -1514,9 +1514,11 @@ function update(deltaTime) {
     }
     
     if (game.keysCollected >= game.keysRequired && game.exitLocked) {
+    if (game.messageTimer <= 0 || game.message !== '¡Ve a la salida y presiona E para abrir!') {
         game.message = '¡Ve a la salida y presiona E para abrir!';
-        game.messageTimer = 1;
+        game.messageTimer = 3;
     }
+}
     
     game.timeLeft -= deltaTime;
     if (game.timeLeft <= 0) {
