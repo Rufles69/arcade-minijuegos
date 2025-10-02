@@ -1515,7 +1515,7 @@ function update(deltaTime) {
     
     if (game.keysCollected >= game.keysRequired && game.exitLocked) {
         game.message = '¡Ve a la salida y presiona E para abrir!';
-        game.messageTimer = 0
+        game.messageTimer = 1;
     }
     
     game.timeLeft -= deltaTime;
