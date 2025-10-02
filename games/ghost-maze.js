@@ -1515,7 +1515,7 @@ function update(deltaTime) {
     
     if (game.keysCollected >= game.keysRequired && game.exitLocked) {
         game.message = '¡Ve a la salida y presiona E para abrir!';
-        game.messageTimer = 2;
+        game.messageTimer = 0
     }
     
     game.timeLeft -= deltaTime;
@@ -2142,9 +2142,15 @@ function drawHUD() {
     // Nivel
     ctx.fillText(`NIVEL ${game.level}`, 10, 10);
     
+    // Llaves
+    ctx.fillText(`LLAVES: ${game.keysCollected}/${game.keysRequired}`, 10, 27);
+    
     // Fantasmas
     ctx.fillText(`FANTASMAS: ${game.ghosts.length}`, canvas.width/2 - 50, 10);
     
+    // Tiempo
+    ctx.textAlign = 'right';
+    ctx.fillText(`TIEMPO: ${Math.ceil(game.timeLeft)}`, canvas.width - 10, 10);
     
     // Mostrar temporizador del modo cazafantasmas (NUEVO)
     if (game.ghostKillMode) {
@@ -2171,8 +2177,7 @@ function drawHUD() {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.fillText(`PODERES: ${powerUpsCollected}/${totalPowerUps}`, canvas.width/2 + 30, 27);
-    
-    
+
 }
 
 // Game Over
