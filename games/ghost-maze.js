@@ -2140,10 +2140,7 @@ function drawHUD() {
     ctx.font = 'bold 12px Arial';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-
     
-    // Llaves
-    ctx.fillText(`LLAVES: ${game.keysCollected}/${game.keysRequired}`, 10, 27);
 
     // Mostrar temporizador del modo cazafantasmas (NUEVO)
     if (game.ghostKillMode) {
