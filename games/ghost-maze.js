@@ -943,7 +943,7 @@ function placeKeys() {
         placedKeys++;
     }
     
-    // LLAVES MEDIAS (distancia media,可能需要 explorar)
+    // LLAVES MEDIAS 
     const mediumCandidates = candidatePositions.filter(pos => 
         pos.difficulty === 'medium' && 
         pos.distanceToPlayer >= 4 && 
@@ -1514,8 +1514,8 @@ function update(deltaTime) {
     }
     
     if (game.keysCollected >= game.keysRequired && game.exitLocked) {
-        game.message = '¡Ve a la salida y presiona E para abrir!';
-        game.messageTimer = 2;
+        game.message = `¡Tienes todas las llaves ve a la salida! (${remaining} restante${remaining !== 1 ? 's' : ''})`;
+            game.messageTimer = 2;
     }
     
     game.timeLeft -= deltaTime;
@@ -2142,15 +2142,9 @@ function drawHUD() {
     // Nivel
     ctx.fillText(`NIVEL ${game.level}`, 10, 10);
     
-    // Llaves
-    ctx.fillText(`LLAVES: ${game.keysCollected}/${game.keysRequired}`, 10, 27);
-    
     // Fantasmas
     ctx.fillText(`FANTASMAS: ${game.ghosts.length}`, canvas.width/2 - 50, 10);
     
-    // Tiempo
-    ctx.textAlign = 'right';
-    ctx.fillText(`TIEMPO: ${Math.ceil(game.timeLeft)}`, canvas.width - 10, 10);
     
     // Mostrar temporizador del modo cazafantasmas (NUEVO)
     if (game.ghostKillMode) {
@@ -2178,22 +2172,6 @@ function drawHUD() {
     ctx.textBaseline = 'top';
     ctx.fillText(`PODERES: ${powerUpsCollected}/${totalPowerUps}`, canvas.width/2 + 30, 27);
     
-    // Barra de progreso de tiempo
-    const progressWidth = canvas.width - 20;
-    const progress = (game.totalTime - game.timeLeft) / game.totalTime;
-    
-    // Fondo de la barra
-    ctx.fillStyle = COLORS.progressBg;
-    ctx.fillRect(10, canvas.height - 15, progressWidth, 8);
-    
-    // Barra de progreso
-    ctx.fillStyle = COLORS.progressFill;
-    ctx.fillRect(10, canvas.height - 15, progressWidth * progress, 8);
-    
-    // Borde de la barra
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(10, canvas.height - 15, progressWidth, 8);
 }
 
 // Game Over

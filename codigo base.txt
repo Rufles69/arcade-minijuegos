@@ -1,6 +1,5 @@
-
 git add .
-git commit -m ""
+git commit -m "Laberinto fantasma agregado"
 git push
 
  python -m http.server 5500
