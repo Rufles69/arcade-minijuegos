@@ -1,4 +1,4 @@
-// ghost-maze.js - Juego Pac-Man estilo
+// ghost-maze.js - Juego Pac-Man estilo (CORREGIDO)
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -32,7 +32,7 @@ let pacman = {
     y: 15,
     direction: 0, // 0: right, 1: down, 2: left, 3: up
     nextDirection: 0,
-    speed: 0.1,
+    speed: 0.15,
     animation: 0,
     mouthOpen: true
 };
@@ -104,7 +104,7 @@ function init() {
     drawGame();
 }
 
-// Manejar teclas presionadas
+// Manejar teclas presionadas - CORREGIDO PARA PAUSA CON ESPACIO
 function handleKeyDown(e) {
     keys[e.key] = true;
     
@@ -125,6 +125,8 @@ function handleKeyDown(e) {
             e.preventDefault();
             if (!gameRunning && !gamePaused) {
                 startGame();
+            } else if (gameRunning) {
+                togglePause(); // PAUSA CON ESPACIO
             }
             break;
         case 'Escape':
@@ -179,7 +181,7 @@ function startGame() {
     startGameLoop();
 }
 
-// Pausar/Reanudar
+// Pausar/Reanudar - MEJORADO
 function togglePause() {
     if (!gameRunning) return;
     
@@ -264,7 +266,7 @@ function setupLevel() {
     // Crear frutas
     createFruits();
     
-    // Crear fantasmas
+    // Crear fantasmas - CORREGIDO
     createGhosts();
     
     totalDots = dots.length;
@@ -331,7 +333,7 @@ function createFruits() {
     ];
 }
 
-// Crear fantasmas
+// Crear fantasmas - CORREGIDO
 function createGhosts() {
     ghosts = [
         {
@@ -339,20 +341,22 @@ function createGhosts() {
             y: 8,
             color: colors.ghostRed,
             name: 'Blinky',
-            direction: 0,
-            speed: 0.08 + (level * 0.01),
-            mode: 'chase', // chase, scatter, frightened
-            target: {x: 0, y: 0}
+            direction: 2, // Empezar mirando izquierda
+            speed: 0.12 + (level * 0.01),
+            mode: 'scatter',
+            target: {x: 0, y: 0},
+            inHouse: false
         },
         {
             x: 8,
             y: 9,
             color: colors.ghostPink,
             name: 'Pinky',
-            direction: 0,
-            speed: 0.075 + (level * 0.01),
-            mode: 'chase',
-            target: {x: 0, y: 0}
+            direction: 0, // Empezar mirando derecha
+            speed: 0.11 + (level * 0.01),
+            mode: 'scatter',
+            target: {x: 0, y: 0},
+            inHouse: true
         },
         {
             x: 9,
@@ -360,19 +364,21 @@ function createGhosts() {
             color: colors.ghostCyan,
             name: 'Inky',
             direction: 0,
-            speed: 0.07 + (level * 0.01),
-            mode: 'chase',
-            target: {x: 0, y: 0}
+            speed: 0.10 + (level * 0.01),
+            mode: 'scatter',
+            target: {x: 0, y: 0},
+            inHouse: true
         },
         {
             x: 10,
             y: 9,
             color: colors.ghostOrange,
             name: 'Clyde',
-            direction: 0,
-            speed: 0.065 + (level * 0.01),
-            mode: 'chase',
-            target: {x: 0, y: 0}
+            direction: 2,
+            speed: 0.09 + (level * 0.01),
+            mode: 'scatter',
+            target: {x: 0, y: 0},
+            inHouse: true
         }
     ];
 }
@@ -432,6 +438,7 @@ function updateGame() {
             ghosts.forEach(ghost => {
                 if (ghost.mode === 'frightened') {
                     ghost.mode = 'chase';
+                    ghost.speed = getGhostSpeed(ghost.name); // Restaurar velocidad normal
                 }
             });
         }
@@ -443,6 +450,17 @@ function updateGame() {
     }
     
     updateUI();
+}
+
+// Obtener velocidad del fantasma
+function getGhostSpeed(name) {
+    const baseSpeeds = {
+        'Blinky': 0.12,
+        'Pinky': 0.11,
+        'Inky': 0.10,
+        'Clyde': 0.09
+    };
+    return baseSpeeds[name] + (level * 0.01);
 }
 
 // Mover Pac-Man
@@ -540,14 +558,17 @@ function canMove(x, y, direction) {
     return maze[newY][newX] === 0;
 }
 
-// Mover fantasmas
+// Mover fantasmas - COMPLETAMENTE REESCRITO
 function moveGhosts() {
     ghosts.forEach(ghost => {
-        // Actualizar objetivo según el modo
-        updateGhostTarget(ghost);
-        
-        // Elegir dirección
-        chooseGhostDirection(ghost);
+        // Si el fantasma está en la casa, comportamiento especial
+        if (ghost.inHouse) {
+            moveGhostInHouse(ghost);
+        } else {
+            // Fantasma fuera de la casa
+            updateGhostTarget(ghost);
+            chooseGhostDirection(ghost);
+        }
         
         // Mover fantasma
         switch(ghost.direction) {
@@ -568,80 +589,148 @@ function moveGhosts() {
         // Teletransporte entre túneles
         if (ghost.x < 0) ghost.x = GRID_WIDTH - 1;
         if (ghost.x >= GRID_WIDTH) ghost.x = 0;
+        
+        // Salir de la casa si está en la posición correcta
+        if (ghost.inHouse && ghost.x === 9 && ghost.y === 8) {
+            ghost.inHouse = false;
+        }
     });
 }
 
-// Actualizar objetivo del fantasma
+// Mover fantasma dentro de la casa
+function moveGhostInHouse(ghost) {
+    const ghostX = Math.round(ghost.x);
+    const ghostY = Math.round(ghost.y);
+    
+    // Comportamiento simple dentro de la casa
+    if (ghostY > 9) {
+        ghost.direction = 3; // Arriba
+    } else if (ghostY < 9) {
+        ghost.direction = 1; // Abajo
+    } else {
+        // En el centro, moverse horizontalmente
+        if (ghostX < 9) {
+            ghost.direction = 0; // Derecha
+        } else if (ghostX > 9) {
+            ghost.direction = 2; // Izquierda
+        }
+    }
+}
+
+// Actualizar objetivo del fantasma - MEJORADO
 function updateGhostTarget(ghost) {
     if (powerMode && ghost.mode !== 'frightened') {
         ghost.mode = 'frightened';
+        ghost.speed = 0.06; // Más lentos cuando están asustados
+    }
+    
+    // Alternar entre chase y scatter
+    const scatterTime = 7000; // 7 segundos
+    const chaseTime = 20000; // 20 segundos
+    const totalTime = Date.now() % (scatterTime + chaseTime);
+    
+    if (totalTime < scatterTime && ghost.mode !== 'frightened') {
+        ghost.mode = 'scatter';
+    } else if (ghost.mode !== 'frightened') {
+        ghost.mode = 'chase';
     }
     
     switch(ghost.mode) {
         case 'chase':
             switch(ghost.name) {
-                case 'Blinky': // Rojo - persigue a Pac-Man
-                    ghost.target = {x: Math.round(pacman.x), y: Math.round(pacman.y)};
+                case 'Blinky': // Rojo - persigue a Pac-Man directamente
+                    ghost.target.x = Math.round(pacman.x);
+                    ghost.target.y = Math.round(pacman.y);
                     break;
                 case 'Pinky': // Rosa - persigue 4 casillas adelante de Pac-Man
                     let aheadX = Math.round(pacman.x);
                     let aheadY = Math.round(pacman.y);
-                    switch(pacman.direction) {
-                        case 0: aheadX += 4; break;
-                        case 1: aheadY += 4; break;
-                        case 2: aheadX -= 4; break;
-                        case 3: aheadY -= 4; break;
+                    for (let i = 0; i < 4; i++) {
+                        if (canMove(aheadX, aheadY, pacman.direction)) {
+                            switch(pacman.direction) {
+                                case 0: aheadX++; break;
+                                case 1: aheadY++; break;
+                                case 2: aheadX--; break;
+                                case 3: aheadY--; break;
+                            }
+                        }
                     }
-                    ghost.target = {x: aheadX, y: aheadY};
+                    ghost.target.x = aheadX;
+                    ghost.target.y = aheadY;
                     break;
-                case 'Inky': // Cian - comportamiento complejo
-                    ghost.target = {x: Math.round(pacman.x), y: Math.round(pacman.y)};
+                case 'Inky': // Cian - usa punto intermedio entre Pac-Man y Blinky
+                    const blinky = ghosts.find(g => g.name === 'Blinky');
+                    const pacmanX = Math.round(pacman.x);
+                    const pacmanY = Math.round(pacman.y);
+                    const blinkyX = Math.round(blinky.x);
+                    const blinkyY = Math.round(blinky.y);
+                    
+                    // Vector desde Blinky a Pac-Man
+                    const vectorX = pacmanX - blinkyX;
+                    const vectorY = pacmanY - blinkyY;
+                    
+                    // Doblar el vector
+                    ghost.target.x = pacmanX + vectorX;
+                    ghost.target.y = pacmanY + vectorY;
                     break;
                 case 'Clyde': // Naranja - huye cuando está cerca
                     const distance = Math.sqrt(
                         Math.pow(ghost.x - pacman.x, 2) + 
                         Math.pow(ghost.y - pacman.y, 2)
                     );
-                    if (distance < 8) {
-                        ghost.target = {x: 0, y: GRID_HEIGHT - 1}; // Esquina inferior izquierda
+                    if (distance < 5) {
+                        // Ir a esquina
+                        ghost.target.x = 0;
+                        ghost.target.y = GRID_HEIGHT - 1;
                     } else {
-                        ghost.target = {x: Math.round(pacman.x), y: Math.round(pacman.y)};
+                        // Perseguir
+                        ghost.target.x = Math.round(pacman.x);
+                        ghost.target.y = Math.round(pacman.y);
                     }
                     break;
             }
             break;
         case 'frightened':
             // Movimiento aleatorio cuando está asustado
-            ghost.target = {
-                x: Math.floor(Math.random() * GRID_WIDTH),
-                y: Math.floor(Math.random() * GRID_HEIGHT)
-            };
+            ghost.target.x = Math.floor(Math.random() * GRID_WIDTH);
+            ghost.target.y = Math.floor(Math.random() * GRID_HEIGHT);
             break;
         case 'scatter':
             // Ir a su esquina designada
             switch(ghost.name) {
-                case 'Blinky': ghost.target = {x: GRID_WIDTH - 2, y: 0}; break;
-                case 'Pinky': ghost.target = {x: 2, y: 0}; break;
-                case 'Inky': ghost.target = {x: GRID_WIDTH - 2, y: GRID_HEIGHT - 1}; break;
-                case 'Clyde': ghost.target = {x: 2, y: GRID_HEIGHT - 1}; break;
+                case 'Blinky': ghost.target.x = GRID_WIDTH - 2; ghost.target.y = 0; break;
+                case 'Pinky': ghost.target.x = 2; ghost.target.y = 0; break;
+                case 'Inky': ghost.target.x = GRID_WIDTH - 2; ghost.target.y = GRID_HEIGHT - 1; break;
+                case 'Clyde': ghost.target.x = 2; ghost.target.y = GRID_HEIGHT - 1; break;
             }
             break;
     }
 }
 
-// Elegir dirección del fantasma
+// Elegir dirección del fantasma - MEJORADO
 function chooseGhostDirection(ghost) {
     const directions = [];
     const ghostX = Math.round(ghost.x);
     const ghostY = Math.round(ghost.y);
     
-    // Verificar direcciones posibles (evitar reversa cuando no está asustado)
+    // Verificar direcciones posibles
     for (let dir = 0; dir < 4; dir++) {
+        // Evitar reversa inmediata (a menos que esté asustado)
         if (ghost.mode !== 'frightened' && dir === (ghost.direction + 2) % 4) {
-            continue; // Evitar reversa
+            continue;
         }
+        
         if (canMove(ghost.x, ghost.y, dir)) {
             directions.push(dir);
+        }
+    }
+    
+    if (directions.length === 0) {
+        // Si no hay direcciones, permitir reversa
+        for (let dir = 0; dir < 4; dir++) {
+            if (canMove(ghost.x, ghost.y, dir)) {
+                directions.push(dir);
+            }
         }
     }
     
@@ -654,23 +743,23 @@ function chooseGhostDirection(ghost) {
     }
     
     // Elegir la dirección que más se acerque al objetivo
-    let bestDirection = ghost.direction;
+    let bestDirection = directions[0];
     let bestDistance = Infinity;
     
     directions.forEach(dir => {
-        let newX = ghostX;
-        let newY = ghostY;
+        let testX = ghostX;
+        let testY = ghostY;
         
         switch(dir) {
-            case 0: newX++; break;
-            case 1: newY++; break;
-            case 2: newX--; break;
-            case 3: newY--; break;
+            case 0: testX++; break;
+            case 1: testY++; break;
+            case 2: testX--; break;
+            case 3: testY--; break;
         }
         
         const distance = Math.sqrt(
-            Math.pow(newX - ghost.target.x, 2) + 
-            Math.pow(newY - ghost.target.y, 2)
+            Math.pow(testX - ghost.target.x, 2) + 
+            Math.pow(testY - ghost.target.y, 2)
         );
         
         if (distance < bestDistance) {
@@ -685,33 +774,41 @@ function chooseGhostDirection(ghost) {
 // Activar modo power
 function activatePowerMode() {
     powerMode = true;
-    powerTimer = 600; // 10 segundos aprox
+    powerTimer = 420; // 7 segundos aprox
     
     ghosts.forEach(ghost => {
-        ghost.mode = 'frightened';
-        ghost.speed = 0.05; // Más lentos cuando están asustados
+        if (!ghost.inHouse) {
+            ghost.mode = 'frightened';
+            ghost.speed = 0.06;
+        }
     });
 }
 
-// Verificar colisiones
+// Verificar colisiones - MEJORADO
 function checkCollisions() {
     const pacmanX = Math.round(pacman.x);
     const pacmanY = Math.round(pacman.y);
     
     ghosts.forEach(ghost => {
+        if (ghost.inHouse) return; // Fantasmas en casa no colisionan
+        
         const ghostX = Math.round(ghost.x);
         const ghostY = Math.round(ghost.y);
         
-        if (pacmanX === ghostX && pacmanY === ghostY) {
+        // Colisión más permisiva (2x2 tiles)
+        if (Math.abs(pacmanX - ghostX) <= 1 && Math.abs(pacmanY - ghostY) <= 1) {
             if (powerMode && ghost.mode === 'frightened') {
                 // Comer fantasma
                 score += 200;
-                // Respawn fantasma
+                console.log(`¡Fantasma ${ghost.name} comido! +200 puntos`);
+                
+                // Respawn fantasma en casa
                 ghost.x = 9;
-                ghost.y = 8;
-                ghost.mode = 'chase';
-                ghost.speed = 0.08 + (level * 0.01);
-            } else {
+                ghost.y = 9;
+                ghost.inHouse = true;
+                ghost.mode = 'scatter';
+                ghost.speed = getGhostSpeed(ghost.name);
+            } else if (ghost.mode !== 'frightened') {
                 // Perder vida
                 loseLife();
             }
@@ -723,6 +820,7 @@ function checkCollisions() {
 function loseLife() {
     lives--;
     updateUI();
+    console.log(`Vida perdida! Vidas restantes: ${lives}`);
     
     if (lives <= 0) {
         gameOver();
@@ -733,13 +831,20 @@ function loseLife() {
         pacman.direction = 0;
         pacman.nextDirection = 0;
         
+        // Solo Blinky sale inmediatamente, otros quedan en casa
         ghosts.forEach(ghost => {
-            ghost.x = ghost.name === 'Blinky' ? 9 : 
-                     ghost.name === 'Pinky' ? 8 :
-                     ghost.name === 'Inky' ? 9 : 10;
-            ghost.y = ghost.name === 'Blinky' ? 8 : 9;
-            ghost.mode = 'chase';
-            ghost.speed = 0.08 + (level * 0.01);
+            if (ghost.name === 'Blinky') {
+                ghost.x = 9;
+                ghost.y = 8;
+                ghost.inHouse = false;
+            } else {
+                ghost.x = ghost.name === 'Pinky' ? 8 : 
+                         ghost.name === 'Inky' ? 9 : 10;
+                ghost.y = 9;
+                ghost.inHouse = true;
+            }
+            ghost.mode = 'scatter';
+            ghost.speed = getGhostSpeed(ghost.name);
         });
         
         powerMode = false;
@@ -862,7 +967,7 @@ function goToMenu() {
 }
 
 // =============================================
-// SISTEMA DE DIBUJO
+// SISTEMA DE DIBUJO (sin cambios)
 // =============================================
 
 function drawGame() {
