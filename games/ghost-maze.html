@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laberinto Fantasma - Mini Arcade</title>
-    <link rel="stylesheet" href="../style.css">
+    <title>Ghost Maze - Mini Arcade</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         * {
@@ -22,6 +21,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            padding: 20px;
         }
         
         .game-container {
@@ -29,7 +29,6 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 20px;
             width: 100%;
             max-width: 500px;
         }
@@ -41,7 +40,7 @@
         }
         
         .game-title {
-            color: #9b59b6;
+            color: #ffd700;
             font-size: 1.8rem;
             margin-bottom: 15px;
             text-shadow: 3px 3px 0 #000;
@@ -59,30 +58,9 @@
             background: linear-gradient(145deg, #16213e, #0f3460);
             padding: 10px;
             border-radius: 8px;
-            border: 2px solid #9b59b6;
+            border: 2px solid #ffd700;
             font-size: 0.7rem;
             text-align: center;
-        }
-        
-        .progress-container {
-            width: 100%;
-            margin: 10px 0;
-        }
-        
-        .progress-bar {
-            width: 100%;
-            height: 15px;
-            background: #34495e;
-            border-radius: 8px;
-            border: 2px solid #2c3e50;
-            overflow: hidden;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #27ae60, #2ecc71);
-            width: 100%;
-            transition: width 0.3s ease;
         }
         
         .items-display {
@@ -107,19 +85,21 @@
             position: relative;
             margin: 15px 0;
             width: 100%;
+            background: #0f3460;
+            border: 4px solid #ffd700;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+            overflow: hidden;
         }
         
         canvas {
-            border: 4px solid #9b59b6;
-            border-radius: 10px;
-            background: #0f3460;
-            box-shadow: 0 0 20px rgba(155, 89, 182, 0.4);
             display: block;
             width: 100%;
+            background: #000;
             image-rendering: pixelated;
         }
         
-        .controls {
+        .game-controls {
             margin-top: 20px;
             text-align: center;
             color: #a9b7c6;
@@ -131,7 +111,7 @@
             background: rgba(15, 52, 96, 0.7);
             padding: 12px;
             border-radius: 8px;
-            border: 2px solid #533483;
+            border: 2px solid #b7950b;
             margin-bottom: 15px;
             line-height: 1.4;
         }
@@ -144,56 +124,65 @@
         }
         
         .btn {
-            background: linear-gradient(145deg, #9b59b6, #8e44ad);
+            background: linear-gradient(145deg, #ffd700, #b7950b);
             border: none;
             border-radius: 8px;
-            color: white;
+            color: #000;
             padding: 12px 20px;
             font-family: 'Press Start 2P', cursive;
             font-size: 0.7rem;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 0 #6c3483;
+            box-shadow: 0 4px 0 #8b7500;
         }
         
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 0 #6c3483;
+            box-shadow: 0 6px 0 #8b7500;
         }
         
         .btn:active {
             transform: translateY(1px);
-            box-shadow: 0 3px 0 #6c3483;
+            box-shadow: 0 3px 0 #8b7500;
         }
         
         .btn-secondary {
-            background: linear-gradient(145deg, #533483, #412a68);
-            box-shadow: 0 4px 0 #2d1c4d;
+            background: linear-gradient(145deg, #7f8c8d, #636e72);
+            box-shadow: 0 4px 0 #2d3436;
+            color: white;
+        }
+        
+        .game-over, .level-complete, .paused-screen, .start-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(145deg, rgba(22, 33, 62, 0.95), rgba(15, 52, 96, 0.95));
+            padding: 30px;
+            text-align: center;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+        }
+        
+        .start-screen {
+            display: flex;
         }
         
         .game-over, .level-complete, .paused-screen {
             display: none;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: linear-gradient(145deg, #16213e, #0f3460);
-            padding: 30px;
-            border-radius: 15px;
-            border: 4px solid #9b59b6;
-            text-align: center;
-            z-index: 100;
-            box-shadow: 0 0 40px rgba(155, 89, 182, 0.6);
-            width: 90%;
-            max-width: 350px;
         }
         
         .level-complete {
             border: 4px solid #27ae60;
         }
         
-        .game-over h2, .level-complete h2, .paused-screen h2 {
-            color: #9b59b6;
+        .game-over h2, .level-complete h2, .paused-screen h2, .start-screen h2 {
+            color: #ffd700;
             font-size: 1.5rem;
             margin-bottom: 15px;
             text-shadow: 2px 2px 0 #000;
@@ -207,7 +196,7 @@
             color: #f1c40f;
         }
         
-        .game-over p, .level-complete p, .paused-screen p {
+        .game-over p, .level-complete p, .paused-screen p, .start-screen p {
             margin: 10px 0;
             font-size: 0.8rem;
             line-height: 1.5;
@@ -249,13 +238,13 @@
         }
         
         .mobile-btn {
-            background: rgba(155, 89, 182, 0.9);
+            background: rgba(255, 215, 0, 0.9);
             border: none;
             border-radius: 8px;
-            color: white;
+            color: #000;
             font-size: 1.2rem;
             cursor: pointer;
-            box-shadow: 0 3px 0 #6c3483;
+            box-shadow: 0 3px 0 #b7950b;
             font-family: 'Press Start 2P', cursive;
             display: flex;
             align-items: center;
@@ -264,14 +253,15 @@
         
         .mobile-btn:active {
             transform: translateY(2px);
-            box-shadow: 0 1px 0 #6c3483;
+            box-shadow: 0 1px 0 #b7950b;
         }
         
         .center-btn {
             grid-column: 2;
             grid-row: 2;
-            background: rgba(241, 196, 15, 0.9);
-            box-shadow: 0 3px 0 #b7950b;
+            background: rgba(52, 152, 219, 0.9);
+            box-shadow: 0 3px 0 #21618c;
+            color: white;
         }
         
         @media (max-width: 768px) {
@@ -293,7 +283,7 @@
                 font-size: 0.6rem;
             }
             
-            canvas {
+            .game-board {
                 height: 400px;
             }
             
@@ -317,13 +307,13 @@
                 font-size: 1.2rem;
             }
             
-            canvas {
+            .game-board {
                 height: 350px;
             }
         }
 
         @media (min-width: 769px) {
-            canvas {
+            .game-board {
                 height: 450px;
             }
         }
@@ -332,76 +322,92 @@
 <body>
     <div class="game-container">
         <div class="game-header">
-            <h1 class="game-title">👻 LABERINTO FANTASMA</h1>
+            <h1 class="game-title">👻 GHOST MAZE</h1>
             <div class="game-stats">
                 <div class="stat">NIVEL: <span id="level">1</span></div>
-                <div class="stat">TIEMPO: <span id="time">120</span>s</div>
-                <div class="stat">FANTASMAS: <span id="ghosts">3</span></div>
+                <div class="stat">PUNTOS: <span id="score">0</span></div>
+                <div class="stat">VIDAS: <span id="lives">3</span></div>
+                <div class="stat">PODER: <span id="power">0</span>s</div>
             </div>
-            <div class="progress-container">
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill"></div>
+            <div class="items-display">
+                <div class="item">
+                    <span class="item-icon">🟡</span> PUNTOS
+                </div>
+                <div class="item">
+                    <span class="item-icon">🍒</span> FRUTAS
+                </div>
+                <div class="item">
+                    <span class="item-icon">⚡</span> PODER
                 </div>
             </div>
         </div>
         
         <div class="game-board">
             <canvas id="gameCanvas" width="400" height="450"></canvas>
+            
+            <div class="start-screen" id="startScreen">
+                <h2>👻 GHOST MAZE</h2>
+                <p>COME PUNTOS Y ESCAPA</p>
+                <p>DE LOS FANTASMAS</p>
+                <p>USA POWER-UPS PARA</p>
+                <p>VOLVERTE INVENCIBLE!</p>
+            </div>
+            
+            <div class="game-over" id="gameOver">
+                <h2>¡GAME OVER!</h2>
+                <p>UN FANTASMA TE ATRAPÓ 👻</p>
+                <p>NIVEL: <span id="finalLevel">1</span></p>
+                <p>PUNTUACIÓN: <span id="finalScore">0</span></p>
+                <div class="stars-display">
+                    <span class="star">⭐</span>
+                    <span class="star">⭐</span>
+                    <span class="star">⭐</span>
+                </div>
+                <p>ESTRELLAS: <span id="earnedStars">0</span></p>
+            </div>
+            
+            <div class="level-complete" id="levelComplete">
+                <h2>¡NIVEL COMPLETADO!</h2>
+                <p>RECOLECTASTE TODOS LOS PUNTOS</p>
+                <p>SIGUIENTE NIVEL: <span id="nextLevel">2</span></p>
+                <div class="stars-display">
+                    <span class="star">⭐</span>
+                    <span class="star">⭐</span>
+                    <span class="star">⭐</span>
+                </div>
+            </div>
+            
+            <div class="paused-screen" id="pausedScreen">
+                <h2>⏸️ JUEGO PAUSADO</h2>
+                <p>Presiona P para reanudar</p>
+            </div>
+        </div>
+        
+        <!-- BOTONES FUERA DEL JUEGO -->
+        <div class="game-controls">
+            <div class="controls-info">
+                <p>← ↑ → ↓ PARA MOVERTE</p>
+                <p>COME TODOS LOS PUNTOS 🟡</p>
+                <p>EVITA LOS FANTASMAS 👻</p>
+                <p>POWER-UPS TE HACEN INVENCIBLE ⚡</p>
+                <p>P PARA PAUSAR</p>
+            </div>
+            <div class="buttons">
+                <button class="btn" id="startBtn">INICIAR JUEGO</button>
+                <button class="btn" id="pauseBtn">PAUSAR</button>
+                <button class="btn" id="restartBtn">REINICIAR</button>
+                <button class="btn btn-secondary" id="menuBtn">VOLVER AL MENÚ</button>
+            </div>
         </div>
         
         <div class="mobile-controls">
             <div class="direction-grid">
                 <div class="mobile-btn" style="grid-column: 2; grid-row: 1;" data-direction="up">↑</div>
                 <div class="mobile-btn" style="grid-column: 1; grid-row: 2;" data-direction="left">←</div>
-                <div class="mobile-btn center-btn" data-direction="action">⚡</div>
+                <div class="mobile-btn center-btn" data-direction="action">👻</div>
                 <div class="mobile-btn" style="grid-column: 3; grid-row: 2;" data-direction="right">→</div>
                 <div class="mobile-btn" style="grid-column: 2; grid-row: 3;" data-direction="down">↓</div>
             </div>
-        </div>
-        
-        <div class="controls">
-            <div class="controls-info">
-                <p>← ↑ → ↓ PARA MOVERTE</p>
-                <p>ESPACIO PARA PAUSAR</p>
-                <p>E PARA ABRIR PUERTAS</p>
-                <p>¡ESQUIVA A LOS FANTASMAS! 👻</p>
-            </div>
-            <div class="buttons">
-                <button class="btn" id="startBtn">INICIAR JUEGO</button>
-                <button class="btn btn-secondary" id="menuBtn">VOLVER AL MENÚ</button>
-            </div>
-        </div>
-        
-        <div class="game-over" id="gameOver">
-            <h2>¡GAME OVER!</h2>
-            <p>TE ATRAPÓ UN FANTASMA 👻</p>
-            <p>NIVEL: <span id="finalLevel">1</span></p>
-            <p>LLAVES RECOGIDAS: <span id="finalKeys">0</span></p>
-            <div class="stars-display">
-                <span class="star">⭐</span>
-                <span class="star">⭐</span>
-                <span class="star">⭐</span>
-            </div>
-            <p>ESTRELLAS: <span id="earnedStars">0</span></p>
-            <button class="btn" id="playAgainBtn">JUGAR DE NUEVO</button>
-        </div>
-        
-        <div class="level-complete" id="levelComplete">
-            <h2>¡NIVEL COMPLETADO!</h2>
-            <p>ESCAPASTE DEL LABERINTO</p>
-            <p>SIGUIENTE NIVEL: <span id="nextLevel">2</span></p>
-            <div class="stars-display">
-                <span class="star">⭐</span>
-                <span class="star">⭐</span>
-                <span class="star">⭐</span>
-            </div>
-            <button class="btn" id="nextLevelBtn">SIGUIENTE NIVEL</button>
-        </div>
-        
-        <div class="paused-screen" id="pausedScreen">
-            <h2>⏸️ JUEGO PAUSADO</h2>
-            <p>Presiona ESPACIO para reanudar</p>
-            <button class="btn" id="resumeBtn">REANUDAR JUEGO</button>
         </div>
     </div>
 
