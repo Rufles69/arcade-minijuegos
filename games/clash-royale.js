@@ -1,4 +1,4 @@
-// clash-royales.js - Versión completamente corregida
+// clash-royales.js - Versión completamente funcional
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -156,7 +156,7 @@ function showStartScreen() {
     startScreen.style.display = 'flex';
 }
 
-// Seleccionar modo de juego - CORREGIDO
+// Seleccionar modo de juego - SIMPLIFICADO Y FUNCIONAL
 function selectMode(mode) {
     gameMode = mode;
     
@@ -166,43 +166,50 @@ function selectMode(mode) {
         // Ocultar pantalla de selección y preparar el juego
         modeSelectScreen.style.display = 'none';
         setupGame();
+        // Iniciar el juego automáticamente
+        setTimeout(() => {
+            startGame();
+        }, 500);
     } else if (mode === 'friend') {
         enemyName = 'AMIGO';
         enemyNameElement.textContent = enemyName;
         
-        // Crear pantalla de invitación
-        const inviteScreen = document.createElement('div');
-        inviteScreen.className = 'mode-select-screen';
-        inviteScreen.style.display = 'flex';
-        inviteScreen.innerHTML = `
-            <h2>INVITAR AMIGO</h2>
-            <div class="invite-link">
-                <p>COMPARTE ESTE ENLACE CON TU AMIGO:</p>
-                <p>https://clashroyale.com/invite/${Math.random().toString(36).substr(2, 9)}</p>
-                <button class="copy-btn" id="copyBtn">COPIAR ENLACE</button>
-            </div>
-            <div class="buttons">
-                <button class="btn" id="continueBtn">CONTINUAR</button>
-                <button class="btn btn-secondary" id="cancelBtn">CANCELAR</button>
+        // Crear pantalla de invitación temporal
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = `
+            <div class="mode-select-screen" style="display: flex;">
+                <h2>INVITAR AMIGO</h2>
+                <div class="invite-link">
+                    <p>COMPARTE ESTE ENLACE CON TU AMIGO:</p>
+                    <p>https://clashroyale.com/invite/${Math.random().toString(36).substr(2, 9)}</p>
+                    <button class="copy-btn" id="tempCopyBtn">COPIAR ENLACE</button>
+                </div>
+                <div class="buttons">
+                    <button class="btn" id="tempContinueBtn">CONTINUAR</button>
+                    <button class="btn btn-secondary" id="tempCancelBtn">CANCELAR</button>
+                </div>
             </div>
         `;
         
-        // Reemplazar la pantalla actual
-        modeSelectScreen.parentNode.replaceChild(inviteScreen, modeSelectScreen);
+        document.body.appendChild(tempDiv);
         
         // Configurar event listeners para los nuevos botones
-        document.getElementById('continueBtn').addEventListener('click', function() {
-            inviteScreen.style.display = 'none';
+        document.getElementById('tempContinueBtn').addEventListener('click', function() {
+            tempDiv.remove();
             setupGame();
+            setTimeout(() => {
+                startGame();
+            }, 500);
         });
         
-        document.getElementById('cancelBtn').addEventListener('click', function() {
-            inviteScreen.style.display = 'none';
-            startScreen.style.display = 'flex';
+        document.getElementById('tempCancelBtn').addEventListener('click', function() {
+            tempDiv.remove();
+            showStartScreen();
         });
         
-        document.getElementById('copyBtn').addEventListener('click', function() {
-            navigator.clipboard.writeText(document.querySelector('.invite-link p:last-child').textContent)
+        document.getElementById('tempCopyBtn').addEventListener('click', function() {
+            const linkText = document.querySelector('.invite-link p:last-child').textContent;
+            navigator.clipboard.writeText(linkText)
                 .then(() => alert('Enlace copiado al portapapeles'))
                 .catch(() => alert('Error al copiar el enlace'));
         });
@@ -364,28 +371,34 @@ function rotateCard(side) {
 
 // Iniciar el juego - CORREGIDO
 function startGame() {
-    if (gameRunning) return;
+    if (gameRunning) {
+        console.log('El juego ya está en ejecución');
+        return;
+    }
     
-    console.log('Iniciando batalla 1vs1...');
+    console.log('🚀 INICIANDO BATALLA 1vs1...');
     gameRunning = true;
     gamePaused = false;
     gameStartTime = Date.now();
     
-    // Ocultar todas las pantallas
-    startScreen.style.display = 'none';
-    modeSelectScreen.style.display = 'none';
-    gameOverElement.style.display = 'none';
-    victoryScreen.style.display = 'none';
-    pausedScreen.style.display = 'none';
-    
-    // Ocultar cualquier pantalla de invitación que pueda existir
-    const inviteScreens = document.querySelectorAll('.mode-select-screen');
-    inviteScreens.forEach(screen => {
+    // Ocultar TODAS las pantallas
+    const allScreens = document.querySelectorAll('.start-screen, .mode-select-screen, .game-over, .level-complete, .paused-screen');
+    allScreens.forEach(screen => {
         screen.style.display = 'none';
+    });
+    
+    // Limpiar cualquier pantalla temporal
+    const tempScreens = document.querySelectorAll('div[style*="display: flex"]');
+    tempScreens.forEach(screen => {
+        if (screen.classList.contains('mode-select-screen')) {
+            screen.style.display = 'none';
+        }
     });
     
     lastTime = performance.now();
     startGameLoop();
+    
+    console.log('✅ Juego iniciado correctamente');
 }
 
 // Toggle pausa
@@ -456,12 +469,7 @@ function resetGame() {
     gameOverElement.style.display = 'none';
     victoryScreen.style.display = 'none';
     pausedScreen.style.display = 'none';
-    
-    // Ocultar cualquier pantalla de invitación
-    const inviteScreens = document.querySelectorAll('.mode-select-screen');
-    inviteScreens.forEach(screen => {
-        screen.style.display = 'none';
-    });
+    modeSelectScreen.style.display = 'none';
     
     // Configurar juego
     setupGame();
