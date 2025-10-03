@@ -1,4 +1,4 @@
-// clash-royales.js - Versión corregida
+// clash-royales.js - Versión completamente corregida
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -156,46 +156,63 @@ function showStartScreen() {
     startScreen.style.display = 'flex';
 }
 
-// Seleccionar modo de juego
+// Seleccionar modo de juego - CORREGIDO
 function selectMode(mode) {
     gameMode = mode;
     
     if (mode === 'bot') {
         enemyName = 'BOT';
         enemyNameElement.textContent = enemyName;
+        // Ocultar pantalla de selección y preparar el juego
         modeSelectScreen.style.display = 'none';
         setupGame();
     } else if (mode === 'friend') {
         enemyName = 'AMIGO';
         enemyNameElement.textContent = enemyName;
         
-        // Simular enlace de invitación
-        const inviteLink = document.createElement('div');
-        inviteLink.className = 'invite-link';
-        inviteLink.innerHTML = `
-            <p>COMPARTE ESTE ENLACE CON TU AMIGO:</p>
-            <p>https://clashroyale.com/invite/${Math.random().toString(36).substr(2, 9)}</p>
-            <button class="copy-btn">COPIAR ENLACE</button>
+        // Crear pantalla de invitación
+        const inviteScreen = document.createElement('div');
+        inviteScreen.className = 'mode-select-screen';
+        inviteScreen.style.display = 'flex';
+        inviteScreen.innerHTML = `
+            <h2>INVITAR AMIGO</h2>
+            <div class="invite-link">
+                <p>COMPARTE ESTE ENLACE CON TU AMIGO:</p>
+                <p>https://clashroyale.com/invite/${Math.random().toString(36).substr(2, 9)}</p>
+                <button class="copy-btn" id="copyBtn">COPIAR ENLACE</button>
+            </div>
+            <div class="buttons">
+                <button class="btn" id="continueBtn">CONTINUAR</button>
+                <button class="btn btn-secondary" id="cancelBtn">CANCELAR</button>
+            </div>
         `;
         
-        // Reemplazar el contenido del modo selección
-        modeSelectScreen.innerHTML = '';
-        modeSelectScreen.appendChild(inviteLink);
+        // Reemplazar la pantalla actual
+        modeSelectScreen.parentNode.replaceChild(inviteScreen, modeSelectScreen);
         
-        // Agregar botón para continuar
-        const continueBtn = document.createElement('button');
-        continueBtn.className = 'btn';
-        continueBtn.textContent = 'CONTINUAR';
-        continueBtn.addEventListener('click', function() {
-            modeSelectScreen.style.display = 'none';
+        // Configurar event listeners para los nuevos botones
+        document.getElementById('continueBtn').addEventListener('click', function() {
+            inviteScreen.style.display = 'none';
             setupGame();
         });
-        modeSelectScreen.appendChild(continueBtn);
+        
+        document.getElementById('cancelBtn').addEventListener('click', function() {
+            inviteScreen.style.display = 'none';
+            startScreen.style.display = 'flex';
+        });
+        
+        document.getElementById('copyBtn').addEventListener('click', function() {
+            navigator.clipboard.writeText(document.querySelector('.invite-link p:last-child').textContent)
+                .then(() => alert('Enlace copiado al portapapeles'))
+                .catch(() => alert('Error al copiar el enlace'));
+        });
     }
 }
 
 // Configurar juego
 function setupGame() {
+    console.log('Configurando juego...');
+    
     // Crear mazos
     createDecks();
     
@@ -217,6 +234,8 @@ function setupGame() {
     
     // Dibujar juego inicial
     drawGame();
+    
+    console.log('Juego configurado correctamente');
 }
 
 // Crear mazos
@@ -343,7 +362,7 @@ function rotateCard(side) {
     }
 }
 
-// Iniciar el juego
+// Iniciar el juego - CORREGIDO
 function startGame() {
     if (gameRunning) return;
     
@@ -351,9 +370,20 @@ function startGame() {
     gameRunning = true;
     gamePaused = false;
     gameStartTime = Date.now();
+    
+    // Ocultar todas las pantallas
     startScreen.style.display = 'none';
     modeSelectScreen.style.display = 'none';
+    gameOverElement.style.display = 'none';
+    victoryScreen.style.display = 'none';
     pausedScreen.style.display = 'none';
+    
+    // Ocultar cualquier pantalla de invitación que pueda existir
+    const inviteScreens = document.querySelectorAll('.mode-select-screen');
+    inviteScreens.forEach(screen => {
+        screen.style.display = 'none';
+    });
+    
     lastTime = performance.now();
     startGameLoop();
 }
@@ -426,6 +456,12 @@ function resetGame() {
     gameOverElement.style.display = 'none';
     victoryScreen.style.display = 'none';
     pausedScreen.style.display = 'none';
+    
+    // Ocultar cualquier pantalla de invitación
+    const inviteScreens = document.querySelectorAll('.mode-select-screen');
+    inviteScreens.forEach(screen => {
+        screen.style.display = 'none';
+    });
     
     // Configurar juego
     setupGame();
