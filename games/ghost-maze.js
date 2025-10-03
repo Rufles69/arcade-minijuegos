@@ -1,4 +1,4 @@
-// ghost-maze.js - Juego Pac-Man estilo (HITBOXES DE PARED CORREGIDAS)
+// ghost-maze.js - Juego Pac-Man estilo (VELOCIDAD Y COLISIONES MEJORADAS)
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -32,11 +32,11 @@ let pacman = {
     y: 15,
     direction: 0, // 0: right, 1: down, 2: left, 3: up
     nextDirection: 0,
-    speed: 0.12,
+    speed: 3.5, // VELOCIDAD AUMENTADA
     animation: 0,
     mouthOpen: true,
-    radius: 7, // Radio reducido para mejor movimiento
-    pixelX: 9 * 20 + 10, // Posición en píxeles
+    radius: 8,
+    pixelX: 9 * 20 + 10,
     pixelY: 15 * 20 + 10
 };
 
@@ -352,7 +352,7 @@ function createGhosts() {
             color: colors.ghostRed,
             name: 'Blinky',
             direction: 2,
-            speed: 0.08,
+            speed: 2.2, // VELOCIDAD AUMENTADA
             mode: 'chase',
             target: {x: 0, y: 0},
             inHouse: false,
@@ -367,7 +367,7 @@ function createGhosts() {
             color: colors.ghostPink,
             name: 'Pinky',
             direction: 0,
-            speed: 0.08,
+            speed: 2.0, // VELOCIDAD AUMENTADA
             mode: 'chase',
             target: {x: 0, y: 0},
             inHouse: true,
@@ -382,7 +382,7 @@ function createGhosts() {
             color: colors.ghostCyan,
             name: 'Inky',
             direction: 0,
-            speed: 0.08,
+            speed: 2.0, // VELOCIDAD AUMENTADA
             mode: 'chase',
             target: {x: 0, y: 0},
             inHouse: true,
@@ -397,7 +397,7 @@ function createGhosts() {
             color: colors.ghostOrange,
             name: 'Clyde',
             direction: 2,
-            speed: 0.08,
+            speed: 1.8, // VELOCIDAD AUMENTADA
             mode: 'chase',
             target: {x: 0, y: 0},
             inHouse: true,
@@ -449,7 +449,7 @@ function updateGame(deltaTime) {
     pacman.animation = (pacman.animation + 1) % 10;
     pacman.mouthOpen = pacman.animation < 5;
     
-    // Mover Pac-Man - SISTEMA COMPLETAMENTE NUEVO
+    // Mover Pac-Man
     movePacman(deltaTime);
     
     // Mover fantasmas
@@ -466,7 +466,7 @@ function updateGame(deltaTime) {
             ghosts.forEach(ghost => {
                 if (ghost.mode === 'frightened') {
                     ghost.mode = 'chase';
-                    ghost.speed = 0.08;
+                    ghost.speed = 2.0; // VELOCIDAD RESTAURADA
                 }
             });
         }
@@ -480,7 +480,7 @@ function updateGame(deltaTime) {
     updateUI();
 }
 
-// Mover Pac-Man - SISTEMA DE MOVIMIENTO CORREGIDO
+// Mover Pac-Man - SISTEMA DE MOVIMIENTO MEJORADO
 function movePacman(deltaTime) {
     // Intentar cambiar dirección si es posible
     if (canMoveInDirection(pacman.nextDirection)) {
@@ -507,24 +507,24 @@ function movePacman(deltaTime) {
         }
         
         // Actualizar posición en grid
-        pacman.x = pacman.pixelX / TILE_SIZE;
-        pacman.y = pacman.pixelY / TILE_SIZE;
+        pacman.x = Math.floor(pacman.pixelX / TILE_SIZE);
+        pacman.y = Math.floor(pacman.pixelY / TILE_SIZE);
     }
     
     // Teletransporte entre túneles
     if (pacman.pixelX < -pacman.radius) {
         pacman.pixelX = canvas.width + pacman.radius;
-        pacman.x = pacman.pixelX / TILE_SIZE;
+        pacman.x = Math.floor(pacman.pixelX / TILE_SIZE);
     } else if (pacman.pixelX > canvas.width + pacman.radius) {
         pacman.pixelX = -pacman.radius;
-        pacman.x = pacman.pixelX / TILE_SIZE;
+        pacman.x = Math.floor(pacman.pixelX / TILE_SIZE);
     }
     
     // Recolectar puntos, power pellets y frutas
     collectItems();
 }
 
-// Verificar si puede moverse en una dirección - SISTEMA CORREGIDO
+// Verificar si puede moverse en una dirección - SISTEMA MEJORADO
 function canMoveInDirection(direction) {
     const futureX = pacman.pixelX;
     const futureY = pacman.pixelY;
@@ -536,7 +536,7 @@ function canMoveInDirection(direction) {
     // Calcular posición futura basada en la dirección
     switch(direction) {
         case 0: // right
-            testX += radius + 2;
+            testX += radius + 1;
             break;
         case 1: // down
             testY += radius + 1;
@@ -562,7 +562,7 @@ function canMoveInDirection(direction) {
     return maze[gridY][gridX] === 0;
 }
 
-// Recolectar items - FUNCIÓN SEPARADA PARA CLARIDAD
+// Recolectar items
 function collectItems() {
     const gridX = Math.round(pacman.x);
     const gridY = Math.round(pacman.y);
@@ -612,14 +612,14 @@ function moveGhosts(deltaTime) {
         // Solo mover fantasmas que están fuera de casa
         if (!ghost.inHouse) {
             // Actualizar posición en grid
-            ghost.x = ghost.pixelX / TILE_SIZE;
-            ghost.y = ghost.pixelY / TILE_SIZE;
+            ghost.x = Math.floor(ghost.pixelX / TILE_SIZE);
+            ghost.y = Math.floor(ghost.pixelY / TILE_SIZE);
             
             // Actualizar objetivo
             updateGhostTarget(ghost);
             
             // Elegir dirección solo cuando está en una intersección
-            if (isAtIntersection(Math.round(ghost.x), Math.round(ghost.y))) {
+            if (isAtIntersection(ghost.x, ghost.y)) {
                 chooseGhostDirection(ghost);
             }
             
@@ -685,10 +685,16 @@ function canMoveGhost(x, y, direction) {
 function updateGhostTarget(ghost) {
     if (powerMode && ghost.mode !== 'frightened') {
         ghost.mode = 'frightened';
-        ghost.speed = 0.05;
+        ghost.speed = 1.5; // VELOCIDAD REDUCIDA EN MODO ASUSTADO
     } else if (!powerMode && ghost.mode === 'frightened') {
         ghost.mode = 'chase';
-        ghost.speed = 0.08;
+        // Restaurar velocidad original según el fantasma
+        switch(ghost.name) {
+            case 'Blinky': ghost.speed = 2.2; break;
+            case 'Pinky': ghost.speed = 2.0; break;
+            case 'Inky': ghost.speed = 2.0; break;
+            case 'Clyde': ghost.speed = 1.8; break;
+        }
     }
     
     switch(ghost.name) {
@@ -747,14 +753,14 @@ function chooseGhostDirection(ghost) {
             continue;
         }
         
-        if (canMoveGhost(Math.round(ghost.x), Math.round(ghost.y), dir)) {
+        if (canMoveGhost(ghost.x, ghost.y, dir)) {
             possibleDirections.push(dir);
         }
     }
     
     if (possibleDirections.length === 0) {
         for (let dir = 0; dir < 4; dir++) {
-            if (canMoveGhost(Math.round(ghost.x), Math.round(ghost.y), dir)) {
+            if (canMoveGhost(ghost.x, ghost.y, dir)) {
                 possibleDirections.push(dir);
             }
         }
@@ -771,8 +777,8 @@ function chooseGhostDirection(ghost) {
         let bestDistance = Infinity;
         
         possibleDirections.forEach(dir => {
-            let testX = Math.round(ghost.x);
-            let testY = Math.round(ghost.y);
+            let testX = ghost.x;
+            let testY = ghost.y;
             
             switch(dir) {
                 case 0: testX++; break;
@@ -803,25 +809,24 @@ function activatePowerMode() {
     ghosts.forEach(ghost => {
         if (!ghost.inHouse) {
             ghost.mode = 'frightened';
-            ghost.speed = 0.05;
+            ghost.speed = 1.5; // VELOCIDAD REDUCIDA EN MODO ASUSTADO
         }
     });
     
     console.log('¡Modo power activado!');
 }
 
-// Verificar colisiones
+// Verificar colisiones - SISTEMA MEJORADO
 function checkCollisions() {
     ghosts.forEach(ghost => {
         if (ghost.inHouse) return;
         
         // COLISIÓN CIRCULAR MEJORADA
-        const distance = Math.sqrt(
-            Math.pow(pacman.pixelX - ghost.pixelX, 2) + 
-            Math.pow(pacman.pixelY - ghost.pixelY, 2)
-        );
+        const dx = pacman.pixelX - ghost.pixelX;
+        const dy = pacman.pixelY - ghost.pixelY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
         
-        const collisionDistance = pacman.radius + ghost.radius;
+        const collisionDistance = pacman.radius + ghost.radius - 2; // MARGEN REDUCIDO
         
         if (distance < collisionDistance) {
             if (powerMode && ghost.mode === 'frightened') {
@@ -835,7 +840,13 @@ function checkCollisions() {
                 ghost.inHouse = true;
                 ghost.releaseTimer = 300;
                 ghost.mode = 'chase';
-                ghost.speed = 0.08;
+                // Restaurar velocidad original
+                switch(ghost.name) {
+                    case 'Blinky': ghost.speed = 2.2; break;
+                    case 'Pinky': ghost.speed = 2.0; break;
+                    case 'Inky': ghost.speed = 2.0; break;
+                    case 'Clyde': ghost.speed = 1.8; break;
+                }
             } else if (ghost.mode !== 'frightened') {
                 // Perder vida
                 loseLife();
@@ -877,7 +888,13 @@ function loseLife() {
                                    ghost.name === 'Inky' ? 1000 : 1500;
             }
             ghost.mode = 'chase';
-            ghost.speed = 0.08;
+            // Restaurar velocidad original
+            switch(ghost.name) {
+                case 'Blinky': ghost.speed = 2.2; break;
+                case 'Pinky': ghost.speed = 2.0; break;
+                case 'Inky': ghost.speed = 2.0; break;
+                case 'Clyde': ghost.speed = 1.8; break;
+            }
         });
         
         powerMode = false;
