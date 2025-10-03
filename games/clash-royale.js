@@ -1,15 +1,14 @@
-// clash-royale.js - Versión mejorada y fiel al juego original
+// clash-royales.js - Versión mejorada y fiel al juego original
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const playerCrownsElement = document.getElementById('playerCrowns');
 const enemyCrownsElement = document.getElementById('enemyCrowns');
-const trophiesElement = document.getElementById('trophies');
-const arenaElement = document.getElementById('arena');
 const timerElement = document.getElementById('timer');
 const elixirFillElement = document.getElementById('elixirFill');
 const elixirCountElement = document.getElementById('elixirCount');
 const startScreen = document.getElementById('startScreen');
+const modeSelectScreen = document.getElementById('modeSelectScreen');
 const gameOverElement = document.getElementById('gameOver');
 const victoryScreen = document.getElementById('victoryScreen');
 const pausedScreen = document.getElementById('pausedScreen');
@@ -19,12 +18,24 @@ const victoryPlayerCrownsElement = document.getElementById('victoryPlayerCrowns'
 const victoryEnemyCrownsElement = document.getElementById('victoryEnemyCrowns');
 const trophiesLostElement = document.getElementById('trophiesLost');
 const trophiesWonElement = document.getElementById('trophiesWon');
+const playerNameElement = document.getElementById('playerName');
+const enemyNameElement = document.getElementById('enemyName');
+const playerNameInput = document.getElementById('playerNameInput');
+const playBtn = document.getElementById('playBtn');
+const botModeBtn = document.getElementById('botModeBtn');
+const friendModeBtn = document.getElementById('friendModeBtn');
+const backBtn = document.getElementById('backBtn');
 const startBtn = document.getElementById('startBtn');
 const pauseBtn = document.getElementById('pauseBtn');
 const restartBtn = document.getElementById('restartBtn');
+const restartGameBtn = document.getElementById('restartGameBtn');
 const menuBtn = document.getElementById('menuBtn');
+const mainMenuBtn = document.getElementById('mainMenuBtn');
+const resumeBtn = document.getElementById('resumeBtn');
+const pausedMenuBtn = document.getElementById('pausedMenuBtn');
+const victoryRestartBtn = document.getElementById('victoryRestartBtn');
+const victoryMenuBtn = document.getElementById('victoryMenuBtn');
 const cardsContainer = document.querySelector('.cards-container');
-const crowns = document.querySelectorAll('.crown');
 
 // Configuración del juego
 const ARENA_WIDTH = 900;
@@ -40,6 +51,9 @@ let gameLoopId = null;
 let lastTime = 0;
 let gameStartTime = 0;
 let doubleElixirActive = false;
+let gameMode = 'bot'; // 'bot' o 'friend'
+let playerName = 'JUGADOR';
+let enemyName = 'RIVAL';
 
 // Estadísticas del juego
 let playerCrowns = 0;
@@ -69,18 +83,18 @@ let nextEnemyCardTime = 0;
 // Cartas disponibles (8 cartas como en el juego real)
 const allCards = {
     // Tropas terrestres
-    'barbarian': { cost: 5, type: 'troop', rarity: 'common', health: 300, damage: 50, speed: 2, range: 30, icon: '🪓', target: 'ground' },
-    'archer': { cost: 3, type: 'troop', rarity: 'common', health: 150, damage: 30, speed: 1.5, range: 150, icon: '🏹', target: 'air&ground' },
-    'giant': { cost: 5, type: 'troop', rarity: 'rare', health: 800, damage: 40, speed: 1, range: 35, icon: '👹', target: 'buildings' },
-    'knight': { cost: 3, type: 'troop', rarity: 'common', health: 400, damage: 45, speed: 2, range: 35, icon: '⚔️', target: 'ground' },
-    'wizard': { cost: 5, type: 'troop', rarity: 'rare', health: 200, damage: 60, speed: 1.2, range: 180, icon: '🔮', target: 'air&ground' },
-    'minion': { cost: 3, type: 'troop', rarity: 'common', health: 100, damage: 40, speed: 2.5, range: 40, icon: '👺', target: 'air&ground' },
-    'valkyrie': { cost: 4, type: 'troop', rarity: 'rare', health: 500, damage: 55, speed: 1.5, range: 40, icon: '⚔️', target: 'ground' },
-    'musketeer': { cost: 4, type: 'troop', rarity: 'rare', health: 180, damage: 65, speed: 1.2, range: 200, icon: '🔫', target: 'air&ground' },
+    'barbarian': { cost: 5, type: 'troop', rarity: 'common', health: 300, damage: 50, speed: 2, range: 30, icon: '🪓', target: 'ground', color: '#e74c3c' },
+    'archer': { cost: 3, type: 'troop', rarity: 'common', health: 150, damage: 30, speed: 1.5, range: 150, icon: '🏹', target: 'air&ground', color: '#f39c12' },
+    'giant': { cost: 5, type: 'troop', rarity: 'rare', health: 800, damage: 40, speed: 1, range: 35, icon: '👹', target: 'buildings', color: '#e67e22' },
+    'knight': { cost: 3, type: 'troop', rarity: 'common', health: 400, damage: 45, speed: 2, range: 35, icon: '⚔️', target: 'ground', color: '#95a5a6' },
+    'wizard': { cost: 5, type: 'troop', rarity: 'rare', health: 200, damage: 60, speed: 1.2, range: 180, icon: '🔮', target: 'air&ground', color: '#9b59b6' },
+    'minion': { cost: 3, type: 'troop', rarity: 'common', health: 100, damage: 40, speed: 2.5, range: 40, icon: '👺', target: 'air&ground', color: '#3498db' },
+    'valkyrie': { cost: 4, type: 'troop', rarity: 'rare', health: 500, damage: 55, speed: 1.5, range: 40, icon: '⚔️', target: 'ground', color: '#e74c3c' },
+    'musketeer': { cost: 4, type: 'troop', rarity: 'rare', health: 180, damage: 65, speed: 1.2, range: 200, icon: '🔫', target: 'air&ground', color: '#2ecc71' },
     
     // Estructuras
-    'cannon': { cost: 3, type: 'building', rarity: 'common', health: 400, damage: 40, range: 180, lifetime: 3000, icon: '🏹', target: 'ground' },
-    'inferno': { cost: 5, type: 'building', rarity: 'rare', health: 350, damage: 80, range: 160, lifetime: 4000, icon: '🔥', target: 'air&ground' }
+    'cannon': { cost: 3, type: 'building', rarity: 'common', health: 400, damage: 40, range: 180, lifetime: 3000, icon: '🏹', target: 'ground', color: '#f1c40f' },
+    'inferno': { cost: 5, type: 'building', rarity: 'rare', health: 350, damage: 80, range: 160, lifetime: 4000, icon: '🔥', target: 'air&ground', color: '#e74c3c' }
 };
 
 // Colores del juego
@@ -103,10 +117,20 @@ function init() {
     console.log('Inicializando Clash Royale...');
     
     // Configurar event listeners
+    playBtn.addEventListener('click', showModeSelect);
+    botModeBtn.addEventListener('click', () => selectMode('bot'));
+    friendModeBtn.addEventListener('click', () => selectMode('friend'));
+    backBtn.addEventListener('click', showStartScreen);
     startBtn.addEventListener('click', startGame);
     pauseBtn.addEventListener('click', togglePause);
     restartBtn.addEventListener('click', resetGame);
+    restartGameBtn.addEventListener('click', resetGame);
     menuBtn.addEventListener('click', goToMenu);
+    mainMenuBtn.addEventListener('click', goToMenu);
+    resumeBtn.addEventListener('click', togglePause);
+    pausedMenuBtn.addEventListener('click', goToMenu);
+    victoryRestartBtn.addEventListener('click', resetGame);
+    victoryMenuBtn.addEventListener('click', goToMenu);
     
     // Event listener para pausa con tecla P
     document.addEventListener('keydown', function(e) {
@@ -115,8 +139,44 @@ function init() {
         }
     });
     
+    // Actualizar nombre del jugador
+    playerNameInput.addEventListener('input', function() {
+        playerName = this.value || 'JUGADOR';
+        playerNameElement.textContent = playerName;
+    });
+    
     resetGame();
     drawGame();
+}
+
+// Mostrar selección de modo
+function showModeSelect() {
+    startScreen.style.display = 'none';
+    modeSelectScreen.style.display = 'flex';
+}
+
+// Mostrar pantalla de inicio
+function showStartScreen() {
+    modeSelectScreen.style.display = 'none';
+    startScreen.style.display = 'flex';
+}
+
+// Seleccionar modo de juego
+function selectMode(mode) {
+    gameMode = mode;
+    
+    if (mode === 'bot') {
+        enemyName = 'BOT';
+        enemyNameElement.textContent = enemyName;
+        startGame();
+    } else if (mode === 'friend') {
+        // En un juego real, aquí se implementaría la lógica de multijugador
+        // Por ahora, simulamos un enlace de invitación
+        enemyName = 'AMIGO';
+        enemyNameElement.textContent = enemyName;
+        alert('Funcionalidad multijugador en desarrollo. Por ahora, jugarás contra un bot.');
+        startGame();
+    }
 }
 
 // Iniciar el juego
@@ -128,6 +188,7 @@ function startGame() {
     gamePaused = false;
     gameStartTime = Date.now();
     startScreen.style.display = 'none';
+    modeSelectScreen.style.display = 'none';
     pausedScreen.style.display = 'none';
     lastTime = performance.now();
     startGameLoop();
@@ -250,6 +311,7 @@ function createUnit(card, x, y, side) {
         side: side,
         attackCooldown: 0,
         icon: card.icon,
+        color: card.color,
         lastAttackTime: 0
     };
     
@@ -276,7 +338,8 @@ function createBuilding(card, x, y, side) {
         side: side,
         spawnTime: Date.now(),
         lifetime: card.lifetime,
-        icon: card.icon
+        icon: card.icon,
+        color: card.color
     };
     
     if (side === 'player') {
@@ -322,13 +385,10 @@ function togglePause() {
 function updateUI() {
     playerCrownsElement.textContent = playerCrowns;
     enemyCrownsElement.textContent = enemyCrowns;
-    trophiesElement.textContent = playerTrophies;
-    arenaElement.textContent = arenaLevel;
     elixirCountElement.textContent = Math.floor(currentElixir);
     elixirFillElement.style.width = (currentElixir / maxElixir) * 100 + '%';
     
     updateCardStates();
-    updateCrownsDisplay();
 }
 
 // Actualizar estado de las cartas
@@ -340,17 +400,6 @@ function updateCardStates() {
             card.classList.add('disabled');
         } else {
             card.classList.remove('disabled');
-        }
-    });
-}
-
-// Actualizar display de coronas
-function updateCrownsDisplay() {
-    crowns.forEach((crown, index) => {
-        if (index < playerCrowns) {
-            crown.classList.add('active');
-        } else {
-            crown.classList.remove('active');
         }
     });
 }
@@ -791,13 +840,7 @@ function goToMenu() {
         gameLoopId = null;
     }
     
-    try {
-        window.location.href = '../index.html';
-    } catch (error) {
-        console.error('Error volviendo al menú:', error);
-        alert('Batalla reiniciada. Para volver al menú principal, cierra esta pestaña.');
-        resetGame();
-    }
+    resetGame();
 }
 
 // =============================================
@@ -930,7 +973,7 @@ function drawUnit(unit) {
     const isBuilding = unit.lifetime;
     
     // Cuerpo de la unidad
-    ctx.fillStyle = unit.side === 'player' ? colors.playerSide : colors.enemySide;
+    ctx.fillStyle = unit.color || (unit.side === 'player' ? colors.playerSide : colors.enemySide);
     
     if (isBuilding) {
         // Estructura
