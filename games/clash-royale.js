@@ -1,4 +1,4 @@
-// clash-royales.js - Versión mejorada y fiel al juego original
+// clash-royales.js - Versión corregida
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -40,9 +40,9 @@ const cardsContainer = document.querySelector('.cards-container');
 // Configuración del juego
 const ARENA_WIDTH = 900;
 const ARENA_HEIGHT = 600;
-const ELIXIR_RATE = 0.02; // Velocidad base de regeneración
-const DOUBLE_ELIXIR_TIME = 60000; // 1 minuto para elixir doble (último minuto)
-const GAME_DURATION = 180000; // 3 minutos en milisegundos
+const ELIXIR_RATE = 0.02;
+const DOUBLE_ELIXIR_TIME = 60000;
+const GAME_DURATION = 180000;
 
 // Variables del juego
 let gameRunning = false;
@@ -51,15 +51,14 @@ let gameLoopId = null;
 let lastTime = 0;
 let gameStartTime = 0;
 let doubleElixirActive = false;
-let gameMode = 'bot'; // 'bot' o 'friend'
+let gameMode = 'bot';
 let playerName = 'JUGADOR';
-let enemyName = 'RIVAL';
+let enemyName = 'BOT';
 
 // Estadísticas del juego
 let playerCrowns = 0;
 let enemyCrowns = 0;
 let playerTrophies = 3000;
-let arenaLevel = 10;
 let currentElixir = 5;
 let maxElixir = 10;
 
@@ -80,21 +79,14 @@ let playerHand = [];
 let enemyHand = [];
 let nextEnemyCardTime = 0;
 
-// Cartas disponibles (8 cartas como en el juego real)
+// Cartas disponibles
 const allCards = {
-    // Tropas terrestres
-    'barbarian': { cost: 5, type: 'troop', rarity: 'common', health: 300, damage: 50, speed: 2, range: 30, icon: '🪓', target: 'ground', color: '#e74c3c' },
-    'archer': { cost: 3, type: 'troop', rarity: 'common', health: 150, damage: 30, speed: 1.5, range: 150, icon: '🏹', target: 'air&ground', color: '#f39c12' },
-    'giant': { cost: 5, type: 'troop', rarity: 'rare', health: 800, damage: 40, speed: 1, range: 35, icon: '👹', target: 'buildings', color: '#e67e22' },
-    'knight': { cost: 3, type: 'troop', rarity: 'common', health: 400, damage: 45, speed: 2, range: 35, icon: '⚔️', target: 'ground', color: '#95a5a6' },
-    'wizard': { cost: 5, type: 'troop', rarity: 'rare', health: 200, damage: 60, speed: 1.2, range: 180, icon: '🔮', target: 'air&ground', color: '#9b59b6' },
-    'minion': { cost: 3, type: 'troop', rarity: 'common', health: 100, damage: 40, speed: 2.5, range: 40, icon: '👺', target: 'air&ground', color: '#3498db' },
-    'valkyrie': { cost: 4, type: 'troop', rarity: 'rare', health: 500, damage: 55, speed: 1.5, range: 40, icon: '⚔️', target: 'ground', color: '#e74c3c' },
-    'musketeer': { cost: 4, type: 'troop', rarity: 'rare', health: 180, damage: 65, speed: 1.2, range: 200, icon: '🔫', target: 'air&ground', color: '#2ecc71' },
-    
-    // Estructuras
-    'cannon': { cost: 3, type: 'building', rarity: 'common', health: 400, damage: 40, range: 180, lifetime: 3000, icon: '🏹', target: 'ground', color: '#f1c40f' },
-    'inferno': { cost: 5, type: 'building', rarity: 'rare', health: 350, damage: 80, range: 160, lifetime: 4000, icon: '🔥', target: 'air&ground', color: '#e74c3c' }
+    'barbarian': { cost: 5, type: 'troop', health: 300, damage: 50, speed: 2, range: 30, icon: '🪓', target: 'ground', color: '#e74c3c' },
+    'archer': { cost: 3, type: 'troop', health: 150, damage: 30, speed: 1.5, range: 150, icon: '🏹', target: 'air&ground', color: '#f39c12' },
+    'giant': { cost: 5, type: 'troop', health: 800, damage: 40, speed: 1, range: 35, icon: '👹', target: 'buildings', color: '#e67e22' },
+    'knight': { cost: 3, type: 'troop', health: 400, damage: 45, speed: 2, range: 35, icon: '⚔️', target: 'ground', color: '#95a5a6' },
+    'wizard': { cost: 5, type: 'troop', health: 200, damage: 60, speed: 1.2, range: 180, icon: '🔮', target: 'air&ground', color: '#9b59b6' },
+    'minion': { cost: 3, type: 'troop', health: 100, damage: 40, speed: 2.5, range: 40, icon: '👺', target: 'air&ground', color: '#3498db' }
 };
 
 // Colores del juego
@@ -145,8 +137,11 @@ function init() {
         playerNameElement.textContent = playerName;
     });
     
+    // Inicializar nombres
+    playerNameElement.textContent = playerName;
+    enemyNameElement.textContent = enemyName;
+    
     resetGame();
-    drawGame();
 }
 
 // Mostrar selección de modo
@@ -168,40 +163,70 @@ function selectMode(mode) {
     if (mode === 'bot') {
         enemyName = 'BOT';
         enemyNameElement.textContent = enemyName;
-        startGame();
+        modeSelectScreen.style.display = 'none';
+        setupGame();
     } else if (mode === 'friend') {
-        // En un juego real, aquí se implementaría la lógica de multijugador
-        // Por ahora, simulamos un enlace de invitación
         enemyName = 'AMIGO';
         enemyNameElement.textContent = enemyName;
-        alert('Funcionalidad multijugador en desarrollo. Por ahora, jugarás contra un bot.');
-        startGame();
+        
+        // Simular enlace de invitación
+        const inviteLink = document.createElement('div');
+        inviteLink.className = 'invite-link';
+        inviteLink.innerHTML = `
+            <p>COMPARTE ESTE ENLACE CON TU AMIGO:</p>
+            <p>https://clashroyale.com/invite/${Math.random().toString(36).substr(2, 9)}</p>
+            <button class="copy-btn">COPIAR ENLACE</button>
+        `;
+        
+        // Reemplazar el contenido del modo selección
+        modeSelectScreen.innerHTML = '';
+        modeSelectScreen.appendChild(inviteLink);
+        
+        // Agregar botón para continuar
+        const continueBtn = document.createElement('button');
+        continueBtn.className = 'btn';
+        continueBtn.textContent = 'CONTINUAR';
+        continueBtn.addEventListener('click', function() {
+            modeSelectScreen.style.display = 'none';
+            setupGame();
+        });
+        modeSelectScreen.appendChild(continueBtn);
     }
 }
 
-// Iniciar el juego
-function startGame() {
-    if (gameRunning) return;
+// Configurar juego
+function setupGame() {
+    // Crear mazos
+    createDecks();
     
-    console.log('Iniciando batalla 1vs1...');
-    gameRunning = true;
-    gamePaused = false;
-    gameStartTime = Date.now();
-    startScreen.style.display = 'none';
-    modeSelectScreen.style.display = 'none';
-    pausedScreen.style.display = 'none';
-    lastTime = performance.now();
-    startGameLoop();
+    // Crear torres
+    playerTowers = [
+        { x: 100, y: 300, width: 70, height: 90, health: 3000, maxHealth: 3000, side: 'player', type: 'king', range: 250, damage: 50 },
+        { x: 150, y: 150, width: 50, height: 70, health: 1500, maxHealth: 1500, side: 'player', type: 'princess', range: 200, damage: 40 },
+        { x: 150, y: 450, width: 50, height: 70, health: 1500, maxHealth: 1500, side: 'player', type: 'princess', range: 200, damage: 40 }
+    ];
+    
+    enemyTowers = [
+        { x: 800, y: 300, width: 70, height: 90, health: 3000, maxHealth: 3000, side: 'enemy', type: 'king', range: 250, damage: 50 },
+        { x: 750, y: 150, width: 50, height: 70, health: 1500, maxHealth: 1500, side: 'enemy', type: 'princess', range: 200, damage: 40 },
+        { x: 750, y: 450, width: 50, height: 70, health: 1500, maxHealth: 1500, side: 'enemy', type: 'princess', range: 200, damage: 40 }
+    ];
+    
+    // Actualizar UI
+    updateUI();
+    
+    // Dibujar juego inicial
+    drawGame();
 }
 
 // Crear mazos
 function createDecks() {
-    // Mazo del jugador (8 cartas)
-    const playerCardNames = ['barbarian', 'archer', 'giant', 'knight', 'wizard', 'minion', 'valkyrie', 'cannon'];
+    // Mazo del jugador (6 cartas)
+    const playerCardNames = ['barbarian', 'archer', 'giant', 'knight', 'wizard', 'minion'];
     playerDeck = playerCardNames.map(name => ({ ...allCards[name], id: name }));
     
-    // Mazo del enemigo (8 cartas diferentes)
-    const enemyCardNames = ['barbarian', 'archer', 'giant', 'knight', 'wizard', 'minion', 'musketeer', 'inferno'];
+    // Mazo del enemigo (6 cartas)
+    const enemyCardNames = ['barbarian', 'archer', 'giant', 'knight', 'wizard', 'minion'];
     enemyDeck = enemyCardNames.map(name => ({ ...allCards[name], id: name }));
     
     // Repartir mano inicial (4 cartas)
@@ -226,7 +251,6 @@ function createCardElements() {
             <div class="card-cost">${card.cost}</div>
             <div class="card-icon">${card.icon}</div>
             <div class="card-name">${card.id.toUpperCase()}</div>
-            ${index === 0 ? '<div class="next-card-indicator">✓</div>' : ''}
         `;
         
         cardElement.addEventListener('click', function() {
@@ -253,20 +277,11 @@ function playCard(card, side) {
         // Posición de despliegue (lado izquierdo para jugador)
         let deployX, deployY;
         
-        if (card.type === 'building') {
-            deployX = 150 + Math.random() * 100;
-            deployY = 200 + Math.random() * 200;
-        } else {
-            deployX = 100 + Math.random() * 50;
-            deployY = 100 + Math.random() * 400;
-        }
+        deployX = 100 + Math.random() * 50;
+        deployY = 100 + Math.random() * 400;
         
-        // Crear unidad/estructura
-        if (card.type === 'troop') {
-            createUnit(card, deployX, deployY, 'player');
-        } else if (card.type === 'building') {
-            createBuilding(card, deployX, deployY, 'player');
-        }
+        // Crear unidad
+        createUnit(card, deployX, deployY, 'player');
         
         // Rotar carta
         rotateCard(side);
@@ -275,19 +290,10 @@ function playCard(card, side) {
         // IA del enemigo juega carta
         let deployX, deployY;
         
-        if (card.type === 'building') {
-            deployX = 650 + Math.random() * 100;
-            deployY = 200 + Math.random() * 200;
-        } else {
-            deployX = 750 + Math.random() * 50;
-            deployY = 100 + Math.random() * 400;
-        }
+        deployX = 750 + Math.random() * 50;
+        deployY = 100 + Math.random() * 400;
         
-        if (card.type === 'troop') {
-            createUnit(card, deployX, deployY, 'enemy');
-        } else if (card.type === 'building') {
-            createBuilding(card, deployX, deployY, 'enemy');
-        }
+        createUnit(card, deployX, deployY, 'enemy');
         
         rotateCard(side);
     }
@@ -322,34 +328,6 @@ function createUnit(card, x, y, side) {
     }
 }
 
-// Crear estructura
-function createBuilding(card, x, y, side) {
-    const building = {
-        x: x,
-        y: y,
-        width: 50,
-        height: 50,
-        type: card.id,
-        health: card.health,
-        maxHealth: card.health,
-        damage: card.damage,
-        range: card.range,
-        target: card.target,
-        side: side,
-        spawnTime: Date.now(),
-        lifetime: card.lifetime,
-        icon: card.icon,
-        color: card.color
-    };
-    
-    if (side === 'player') {
-        // Agregar a unidades para simplicidad
-        playerUnits.push(building);
-    } else {
-        enemyUnits.push(building);
-    }
-}
-
 // Rotar carta en la mano
 function rotateCard(side) {
     if (side === 'player') {
@@ -363,6 +341,21 @@ function rotateCard(side) {
         enemyHand.push(newCard);
         nextEnemyCardTime = Date.now() + 2000 + Math.random() * 3000;
     }
+}
+
+// Iniciar el juego
+function startGame() {
+    if (gameRunning) return;
+    
+    console.log('Iniciando batalla 1vs1...');
+    gameRunning = true;
+    gamePaused = false;
+    gameStartTime = Date.now();
+    startScreen.style.display = 'none';
+    modeSelectScreen.style.display = 'none';
+    pausedScreen.style.display = 'none';
+    lastTime = performance.now();
+    startGameLoop();
 }
 
 // Toggle pausa
@@ -428,42 +421,14 @@ function resetGame() {
     projectiles = [];
     damagePopups = [];
     
-    // Configurar nivel
-    setupGame();
-    
-    // Actualizar UI
-    updateUI();
-    
     // Mostrar pantalla de inicio
     startScreen.style.display = 'flex';
     gameOverElement.style.display = 'none';
     victoryScreen.style.display = 'none';
     pausedScreen.style.display = 'none';
     
-    drawGame();
-}
-
-// Configurar juego
-function setupGame() {
-    // Crear mazos
-    createDecks();
-    
-    // Crear torres
-    playerTowers = [
-        // Torre del Rey (jugador)
-        { x: 100, y: 300, width: 70, height: 90, health: 3000, maxHealth: 3000, side: 'player', type: 'king', range: 250, damage: 50 },
-        // Torres de Princesa (jugador)
-        { x: 150, y: 150, width: 50, height: 70, health: 1500, maxHealth: 1500, side: 'player', type: 'princess', range: 200, damage: 40 },
-        { x: 150, y: 450, width: 50, height: 70, health: 1500, maxHealth: 1500, side: 'player', type: 'princess', range: 200, damage: 40 }
-    ];
-    
-    enemyTowers = [
-        // Torre del Rey (enemigo)
-        { x: 800, y: 300, width: 70, height: 90, health: 3000, maxHealth: 3000, side: 'enemy', type: 'king', range: 250, damage: 50 },
-        // Torres de Princesa (enemigo)
-        { x: 750, y: 150, width: 50, height: 70, health: 1500, maxHealth: 1500, side: 'enemy', type: 'princess', range: 200, damage: 40 },
-        { x: 750, y: 450, width: 50, height: 70, health: 1500, maxHealth: 1500, side: 'enemy', type: 'princess', range: 200, damage: 40 }
-    ];
+    // Configurar juego
+    setupGame();
 }
 
 // Iniciar bucle del juego
@@ -550,7 +515,7 @@ function updateElixir(deltaTime) {
 function updateEnemyAI() {
     // El enemigo juega cartas periódicamente
     if (Date.now() >= nextEnemyCardTime && enemyHand.length > 0) {
-        const playableCards = enemyHand.filter(card => true); // En esta versión simple, siempre puede jugar
+        const playableCards = enemyHand.filter(card => true);
         
         if (playableCards.length > 0) {
             const randomCard = playableCards[Math.floor(Math.random() * playableCards.length)];
@@ -567,12 +532,6 @@ function updateUnits(units, enemyUnits, deltaTime) {
     
     for (let i = units.length - 1; i >= 0; i--) {
         const unit = units[i];
-        
-        // Verificar si es una estructura y ha expirado
-        if (unit.lifetime && Date.now() - unit.spawnTime > unit.lifetime) {
-            units.splice(i, 1);
-            continue;
-        }
         
         // Reducir cooldown de ataque
         if (unit.attackCooldown > 0) {
@@ -594,7 +553,7 @@ function updateUnits(units, enemyUnits, deltaTime) {
                     attackTarget(unit, unit.currentTarget);
                     unit.attackCooldown = 60; // 1 segundo de cooldown
                 }
-            } else if (!unit.lifetime) { // Las estructuras no se mueven
+            } else {
                 // Moverse hacia el objetivo
                 const angle = Math.atan2(unit.currentTarget.y - unit.y, unit.currentTarget.x - unit.x);
                 unit.x += Math.cos(angle) * unit.speed * deltaTime;
@@ -616,10 +575,6 @@ function findTarget(unit, targets) {
     
     for (const target of targets) {
         if (target.health > 0) {
-            // Verificar tipo de objetivo
-            if (unit.target === 'buildings' && target.type !== 'king' && target.type !== 'princess') continue;
-            if (unit.target === 'ground' && target.type === 'air') continue;
-            
             const distance = getDistance(unit, target);
             
             if (distance < closestDistance) {
@@ -639,7 +594,7 @@ function getDistance(obj1, obj2) {
 
 // Atacar objetivo
 function attackTarget(unit, target) {
-    if (unit.type === 'archer' || unit.type === 'wizard' || unit.type === 'musketeer') {
+    if (unit.type === 'archer' || unit.type === 'wizard') {
         // Unidades de rango lanzan proyectiles
         const projectile = {
             x: unit.x,
@@ -652,7 +607,7 @@ function attackTarget(unit, target) {
         };
         projectiles.push(projectile);
     } else {
-        // Ataque cuerpo a cuerpo o de torre
+        // Ataque cuerpo a cuerpo
         target.health -= unit.damage;
         createDamageEffect(target.x, target.y, unit.damage);
         
@@ -768,7 +723,7 @@ function endGameByTime() {
         gameOver();
     } else {
         // Empate
-        gameOver(); // En esta versión simple, empate cuenta como derrota
+        gameOver();
     }
 }
 
@@ -790,9 +745,6 @@ function gameOver() {
     finalEnemyCrownsElement.textContent = enemyCrowns;
     trophiesLostElement.textContent = '-' + trophiesLost;
     gameOverElement.style.display = 'flex';
-    
-    // Guardar progreso
-    saveProgress();
 }
 
 // Victoria
@@ -813,20 +765,6 @@ function victory() {
     victoryEnemyCrownsElement.textContent = enemyCrowns;
     trophiesWonElement.textContent = '+' + trophiesWon;
     victoryScreen.style.display = 'flex';
-    
-    // Guardar progreso
-    saveProgress();
-}
-
-// Guardar progreso
-function saveProgress() {
-    try {
-        localStorage.setItem('clash-royale-trophies', playerTrophies.toString());
-        localStorage.setItem('clash-royale-highscore', arenaLevel.toString());
-        console.log('Progreso guardado:', { trophies: playerTrophies, arena: arenaLevel });
-    } catch (error) {
-        console.error('Error guardando progreso:', error);
-    }
 }
 
 // Volver al menú
@@ -844,7 +782,7 @@ function goToMenu() {
 }
 
 // =============================================
-// SISTEMA DE DIBUJO MEJORADO
+// SISTEMA DE DIBUJO
 // =============================================
 
 function drawGame() {
@@ -970,28 +908,16 @@ function drawUnits() {
 }
 
 function drawUnit(unit) {
-    const isBuilding = unit.lifetime;
-    
     // Cuerpo de la unidad
     ctx.fillStyle = unit.color || (unit.side === 'player' ? colors.playerSide : colors.enemySide);
     
-    if (isBuilding) {
-        // Estructura
-        ctx.fillRect(unit.x - unit.width/2, unit.y - unit.height/2, unit.width, unit.height);
-        
-        // Detalles de estructura
-        ctx.fillStyle = '#34495e';
-        ctx.fillRect(unit.x - unit.width/2 + 5, unit.y - unit.height/2 + 5, unit.width - 10, 8);
-        ctx.fillRect(unit.x - unit.width/2 + 8, unit.y - unit.height/2 + 18, unit.width - 16, 6);
-    } else {
-        // Tropa
-        ctx.beginPath();
-        ctx.arc(unit.x, unit.y, unit.width/2, 0, Math.PI * 2);
-        ctx.fill();
-    }
+    // Tropa
+    ctx.beginPath();
+    ctx.arc(unit.x, unit.y, unit.width/2, 0, Math.PI * 2);
+    ctx.fill();
     
     // Icono de la unidad
-    ctx.font = isBuilding ? '16px Arial' : '14px Arial';
+    ctx.font = '14px Arial';
     ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -1004,29 +930,17 @@ function drawUnit(unit) {
     const barY = unit.y - unit.height/2 - 8;
     
     ctx.fillStyle = colors.healthBarBackground;
-    if (isBuilding) {
-        ctx.fillRect(unit.x - unit.width/2, barY, barWidth, barHeight);
-    } else {
-        ctx.fillRect(unit.x - unit.width/2, barY, barWidth, barHeight);
-    }
+    ctx.fillRect(unit.x - unit.width/2, barY, barWidth, barHeight);
     
     ctx.fillStyle = healthPercent > 0.3 ? colors.healthBar : '#ff6b6b';
-    if (isBuilding) {
-        ctx.fillRect(unit.x - unit.width/2, barY, barWidth * healthPercent, barHeight);
-    } else {
-        ctx.fillRect(unit.x - unit.width/2, barY, barWidth * healthPercent, barHeight);
-    }
+    ctx.fillRect(unit.x - unit.width/2, barY, barWidth * healthPercent, barHeight);
     
     // Borde
     ctx.strokeStyle = '#2c3e50';
     ctx.lineWidth = 1;
-    if (isBuilding) {
-        ctx.strokeRect(unit.x - unit.width/2, unit.y - unit.height/2, unit.width, unit.height);
-    } else {
-        ctx.beginPath();
-        ctx.arc(unit.x, unit.y, unit.width/2, 0, Math.PI * 2);
-        ctx.stroke();
-    }
+    ctx.beginPath();
+    ctx.arc(unit.x, unit.y, unit.width/2, 0, Math.PI * 2);
+    ctx.stroke();
 }
 
 function drawProjectiles() {
@@ -1040,9 +954,9 @@ function drawProjectiles() {
             ctx.lineTo(projectile.x - 10, projectile.y + 3);
             ctx.closePath();
             ctx.fill();
-        } else if (projectile.type === 'wizard' || projectile.type === 'musketeer') {
+        } else if (projectile.type === 'wizard') {
             // Bola de energía
-            ctx.fillStyle = projectile.type === 'wizard' ? '#ff6b6b' : '#3498db';
+            ctx.fillStyle = '#ff6b6b';
             ctx.beginPath();
             ctx.arc(projectile.x, projectile.y, 5, 0, Math.PI * 2);
             ctx.fill();
