@@ -1,5 +1,5 @@
 git add .
-git commit -m "arreglos ninja"
+git commit -m "arreglos"
 git push
 
  python -m http.server 5500
