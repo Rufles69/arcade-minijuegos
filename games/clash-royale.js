@@ -1,9 +1,6 @@
-// clash-royales.js - Versión 1000% mejorada y funcional
-
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// Ajustar canvas al tamaño real del contenedor
 function resizeCanvas() {
     const container = document.querySelector('.arena-container');
     canvas.width = container.clientWidth;
@@ -12,52 +9,36 @@ function resizeCanvas() {
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
-// Elementos del DOM
-const playerCrownsElement = document.getElementById('playerCrowns');
-const enemyCrownsElement = document.getElementById('enemyCrowns');
-const timerElement = document.getElementById('timer');
-const elixirFillElement = document.getElementById('elixirFill');
-const elixirCountElement = document.getElementById('elixirCount');
-const startScreen = document.getElementById('startScreen');
-const modeSelectScreen = document.getElementById('modeSelectScreen');
-const gameOverElement = document.getElementById('gameOver');
-const victoryScreen = document.getElementById('victoryScreen');
-const pausedScreen = document.getElementById('pausedScreen');
-const playerNameElement = document.getElementById('playerName');
-const enemyNameElement = document.getElementById('enemyName');
-const playerNameInput = document.getElementById('playerNameInput');
-const startBtn = document.getElementById('startBtn');
-const pauseBtn = document.getElementById('pauseBtn');
-const restartGameBtn = document.getElementById('restartGameBtn');
-const mainMenuBtn = document.getElementById('mainMenuBtn');
-const cardsContainer = document.getElementById('cardsContainer');
+// UI
+const playerCrownsEl = document.getElementById('playerCrowns');
+const enemyCrownsEl = document.getElementById('enemyCrowns');
+const timerEl = document.getElementById('timer');
+const elixirFillEl = document.getElementById('elixirFill');
+const elixirCountEl = document.getElementById('elixirCount');
 
-// Configuración
-const ELIXIR_RATE = 0.02;
-const MAX_ELIXIR = 10;
-const GAME_DURATION = 180000; // 3 minutos
-const DOUBLE_ELIXIR_TIME = 60000; // último minuto
-
-// Estado del juego
+// Estado
 let gameRunning = false;
-let gamePaused = false;
-let gameStartTime = 0;
+let gameMode = '';
+let playerName = 'JUGADOR';
+let enemyName = 'BOT';
 let currentElixir = 5;
+const MAX_ELIXIR = 10;
+const ELIXIR_RATE = 0.02;
+const GAME_DURATION = 180000;
+let gameStartTime = 0;
 let playerCrowns = 0;
 let enemyCrowns = 0;
-let doubleElixirActive = false;
-
-// Unidades y torres
 let playerUnits = [];
 let enemyUnits = [];
 let playerTowers = [];
 let enemyTowers = [];
 let projectiles = [];
 let damagePopups = [];
-
-// Mazos
 let playerHand = [];
-const playerDeck = [
+let enemyHand = [];
+let activePlayer = 'player'; // Para modo 2 jugadores
+
+const deck = [
     { id: 'barbarian', cost: 5, health: 300, damage: 50, speed: 1.5, range: 40, icon: '🪓', color: '#e74c3c' },
     { id: 'archer', cost: 3, health: 150, damage: 30, speed: 1.2, range: 150, icon: '🏹', color: '#f39c12' },
     { id: 'giant', cost: 5, health: 800, damage: 40, speed: 0.8, range: 40, icon: '👹', color: '#e67e22' },
@@ -66,73 +47,82 @@ const playerDeck = [
     { id: 'minion', cost: 3, health: 100, damage: 40, speed: 2, range: 40, icon: '👺', color: '#3498db' }
 ];
 
-// Inicializar
-function init() {
-    document.getElementById('playBtn').addEventListener('click', () => {
-        startScreen.style.display = 'none';
-        modeSelectScreen.style.display = 'flex';
-    });
+function showModeSelect() {
+    document.getElementById('startScreen').classList.remove('active');
+    document.getElementById('modeSelectScreen').classList.add('active');
+}
 
-    document.getElementById('botModeBtn').addEventListener('click', () => {
-        modeSelectScreen.style.display = 'none';
-        setupGame();
-    });
+function showStartScreen() {
+    document.getElementById('modeSelectScreen').classList.remove('active');
+    document.getElementById('startScreen').classList.add('active');
+}
 
-    playerNameInput.addEventListener('input', () => {
-        playerNameElement.textContent = playerNameInput.value || 'JUGADOR';
-    });
-
-    startBtn.addEventListener('click', startGame);
-    pauseBtn.addEventListener('click', togglePause);
-    restartGameBtn.addEventListener('click', resetGame);
-    mainMenuBtn.addEventListener('click', () => location.reload());
-
-    resetGame();
+function selectMode(mode) {
+    gameMode = mode;
+    playerName = document.getElementById('playerNameInput').value || 'JUGADOR';
+    enemyName = mode === 'bot' ? 'BOT' : 'JUGADOR 2';
+    document.getElementById('modeSelectScreen').classList.remove('active');
+    document.getElementById('startBtn').style.display = 'inline-block';
+    setupGame();
 }
 
 function setupGame() {
-    // Crear torres
+    playerHand = [...deck.slice(0, 4)];
+    enemyHand = [...deck.slice(0, 4)];
+    playerUnits = [];
+    enemyUnits = [];
+    projectiles = [];
+    damagePopups = [];
+    playerCrowns = 0;
+    enemyCrowns = 0;
+    currentElixir = 5;
+
+    // Torres
     playerTowers = [
-        { x: 100, y: canvas.height / 2, width: 60, height: 80, health: 3000, maxHealth: 3000, type: 'king', side: 'player' },
-        { x: 150, y: 120, width: 40, height: 60, health: 1500, maxHealth: 1500, type: 'princess', side: 'player' },
-        { x: 150, y: canvas.height - 120, width: 40, height: 60, health: 1500, maxHealth: 1500, type: 'princess', side: 'player' }
+        { x: 80, y: canvas.height / 2, width: 60, height: 80, health: 3000, maxHealth: 3000, type: 'king', side: 'player' },
+        { x: 130, y: 120, width: 40, height: 60, health: 1500, maxHealth: 1500, type: 'princess', side: 'player' },
+        { x: 130, y: canvas.height - 120, width: 40, height: 60, health: 1500, maxHealth: 1500, type: 'princess', side: 'player' }
     ];
-
     enemyTowers = [
-        { x: canvas.width - 100, y: canvas.height / 2, width: 60, height: 80, health: 3000, maxHealth: 3000, type: 'king', side: 'enemy' },
-        { x: canvas.width - 150, y: 120, width: 40, height: 60, health: 1500, maxHealth: 1500, type: 'princess', side: 'enemy' },
-        { x: canvas.width - 150, y: canvas.height - 120, width: 40, height: 60, health: 1500, maxHealth: 1500, type: 'princess', side: 'enemy' }
+        { x: canvas.width - 80, y: canvas.height / 2, width: 60, height: 80, health: 3000, maxHealth: 3000, type: 'king', side: 'enemy' },
+        { x: canvas.width - 130, y: 120, width: 40, height: 60, health: 1500, maxHealth: 1500, type: 'princess', side: 'enemy' },
+        { x: canvas.width - 130, y: canvas.height - 120, width: 40, height: 60, health: 1500, maxHealth: 1500, type: 'princess', side: 'enemy' }
     ];
 
-    // Crear mano inicial
-    playerHand = [...playerDeck.slice(0, 4)];
     renderCards();
     drawGame();
+    updateUI();
 }
 
 function renderCards() {
-    cardsContainer.innerHTML = '';
-    playerHand.forEach(card => {
+    const container = document.getElementById('cardsContainer');
+    container.innerHTML = '';
+    const hand = activePlayer === 'player' ? playerHand : enemyHand;
+    hand.forEach(card => {
         const cardEl = document.createElement('div');
         cardEl.className = 'card';
+        if ((activePlayer === 'player' && currentElixir < card.cost) || !gameRunning) cardEl.classList.add('disabled');
         cardEl.innerHTML = `
             <div class="card-cost">${card.cost}</div>
             <div class="card-icon">${card.icon}</div>
             <div class="card-name">${card.id.toUpperCase()}</div>
         `;
-        cardEl.addEventListener('click', () => playCard(card));
-        cardsContainer.appendChild(cardEl);
+        cardEl.onclick = () => playCard(card);
+        container.appendChild(cardEl);
     });
 }
 
 function playCard(card) {
-    if (currentElixir < card.cost || !gameRunning || gamePaused) return;
-
+    if (currentElixir < card.cost || !gameRunning) return;
     currentElixir -= card.cost;
-    const x = 100 + Math.random() * 50;
+    const x = activePlayer === 'player' ? 100 + Math.random() * 50 : canvas.width - 150 + Math.random() * 50;
     const y = 100 + Math.random() * (canvas.height - 200);
-    createUnit(card, x, y, 'player');
+    createUnit(card, x, y, activePlayer);
     updateUI();
+    if (gameMode === 'friend') {
+        activePlayer = activePlayer === 'player' ? 'enemy' : 'player';
+        renderCards();
+    }
 }
 
 function createUnit(card, x, y, side) {
@@ -148,121 +138,77 @@ function createUnit(card, x, y, side) {
         icon: card.icon,
         color: card.color,
         side,
-        target: null,
-        attackCooldown: 0
+        target: null
     };
-
     if (side === 'player') playerUnits.push(unit);
     else enemyUnits.push(unit);
 }
 
 function startGame() {
     gameRunning = true;
-    gamePaused = false;
     gameStartTime = Date.now();
+    document.getElementById('startBtn').style.display = 'none';
     gameLoop();
 }
 
-function togglePause() {
-    gamePaused = !gamePaused;
-    pausedScreen.style.display = gamePaused ? 'flex' : 'none';
-}
-
-function resetGame() {
-    gameRunning = false;
-    gamePaused = false;
-    playerUnits = [];
-    enemyUnits = [];
-    projectiles = [];
-    damagePopups = [];
-    playerCrowns = 0;
-    enemyCrowns = 0;
-    currentElixir = 5;
-    doubleElixirActive = false;
-    updateUI();
-    setupGame();
-}
-
 function updateUI() {
-    playerCrownsElement.textContent = playerCrowns;
-    enemyCrownsElement.textContent = enemyCrowns;
-    elixirCountElement.textContent = Math.floor(currentElixir);
-    elixirFillElement.style.width = `${(currentElixir / MAX_ELIXIR) * 100}%`;
+    playerCrownsEl.textContent = playerCrowns;
+    enemyCrownsEl.textContent = enemyCrowns;
+    elixirCountEl.textContent = Math.floor(currentElixir);
+    elixirFillEl.style.width = `${(currentElixir / MAX_ELIXIR) * 100}%`;
 }
 
 function gameLoop() {
-    if (!gameRunning || gamePaused) return;
-
+    if (!gameRunning) return;
     updateGame();
     drawGame();
     requestAnimationFrame(gameLoop);
 }
 
 function updateGame() {
-    const now = Date.now();
-    const elapsed = now - gameStartTime;
+    const elapsed = Date.now() - gameStartTime;
     const remaining = Math.max(0, GAME_DURATION - elapsed);
-
     const minutes = Math.floor(remaining / 60000);
-    const seconds = Math.floor((remaining % 60000) / 1000);
-    timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-
-    if (remaining <= DOUBLE_ELIXIR_TIME && !doubleElixirActive) {
-        doubleElixirActive = true;
-        timerElement.style.color = '#9b59b6';
-    }
-
-    if (remaining <= 0) {
-        endGame();
-    }
+        const seconds = Math.floor((remaining % 60000) / 1000);
+    timerEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 
     // Regenerar elixir
-    currentElixir = Math.min(MAX_ELIXIR, currentElixir + (doubleElixirActive ? ELIXIR_RATE * 2 : ELIXIR_RATE));
+    currentElixir = Math.min(MAX_ELIXIR, currentElixir + ELIXIR_RATE);
 
     // Actualizar unidades
     updateUnits(playerUnits, enemyTowers);
     updateUnits(enemyUnits, playerTowers);
 
+    // Comprobar victoria/derrota
+    const playerKing = playerTowers.find(t => t.type === 'king');
+    const enemyKing = enemyTowers.find(t => t.type === 'king');
+    if (playerKing.health <= 0) return endGame('lose');
+    if (enemyKing.health <= 0) return endGame('win');
+    if (remaining <= 0) return endGame(playerCrowns > enemyCrowns ? 'win' : 'lose');
+
     updateUI();
 }
 
 function updateUnits(units, enemyTowers) {
-    units.forEach(unit => {
-        if (unit.health <= 0) return;
+    for (let i = units.length - 1; i >= 0; i--) {
+        const unit = units[i];
+        const target = enemyTowers.find(t => t.health > 0);
+        if (!target) continue;
 
-        const target = findNearestTarget(unit, enemyTowers);
-        if (!target) return;
-
-        const dist = getDistance(unit, target);
+        const dist = Math.hypot(unit.x - target.x, unit.y - target.y);
         if (dist < unit.range) {
             target.health -= unit.damage;
             createDamageEffect(target.x, target.y, unit.damage);
-            if (target.health <= 0) onTowerDestroyed(target);
-            units.splice(units.indexOf(unit), 1);
+            units.splice(i, 1);
+            if (target.health <= 0) {
+                if (target.side === 'player') enemyCrowns++;
+                else playerCrowns++;
+            }
         } else {
             const angle = Math.atan2(target.y - unit.y, target.x - unit.x);
             unit.x += Math.cos(angle) * unit.speed;
             unit.y += Math.sin(angle) * unit.speed;
         }
-    });
-}
-
-function findNearestTarget(unit, towers) {
-    return towers.find(t => t.health > 0);
-}
-
-function getDistance(a, b) {
-    return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
-}
-
-function onTowerDestroyed(tower) {
-    if (tower.side === 'player') enemyCrowns++;
-    else playerCrowns++;
-
-    if (tower.type === 'king') {
-        gameRunning = false;
-        if (tower.side === 'player') showGameOver();
-        else showVictory();
     }
 }
 
@@ -317,22 +263,24 @@ function drawGame() {
     });
 }
 
-function showGameOver() {
-    gameOverElement.style.display = 'flex';
-    finalPlayerCrownsElement.textContent = playerCrowns;
-    finalEnemyCrownsElement.textContent = enemyCrowns;
-}
-
-function showVictory() {
-    victoryScreen.style.display = 'flex';
-    victoryPlayerCrownsElement.textContent = playerCrowns;
-    victoryEnemyCrownsElement.textContent = enemyCrowns;
-}
-
-function endGame() {
+function endGame(result) {
     gameRunning = false;
-    if (playerCrowns > enemyCrowns) showVictory();
-    else showGameOver();
+    if (result === 'win') {
+        document.getElementById('victoryCrowns').textContent = `${playerCrowns} - ${enemyCrowns}`;
+        document.getElementById('victoryScreen').classList.add('active');
+    } else {
+        document.getElementById('finalCrowns').textContent = `${playerCrowns} - ${enemyCrowns}`;
+        document.getElementById('gameOverScreen').classList.add('active');
+    }
+}
+
+function resetGame() {
+    gameRunning = false;
+    document.getElementById('victoryScreen').classList.remove('active');
+    document.getElementById('gameOverScreen').classList.remove('active');
+    document.getElementById('startScreen').classList.add('active');
+    document.getElementById('startBtn').style.display = 'none';
+    setupGame();
 }
 
 // Iniciar
