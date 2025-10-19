@@ -22,6 +22,7 @@ let gameMode = '';
 let playerName = 'JUGADOR';
 let enemyName = 'BOT';
 let currentElixir = 5;
+let enemyElixir = 5; // <-- ELIXIR DEL BOT LIMITADO
 const MAX_ELIXIR = 10;
 const ELIXIR_RATE = 0.02;
 const GAME_DURATION = 180000;
@@ -45,6 +46,14 @@ const deck = [
     { id: 'wizard', cost: 5, health: 200, damage: 60, speed: 1, range: 180, icon: '🔮', color: '#9b59b6' },
     { id: 'minion', cost: 3, health: 100, damage: 40, speed: 2, range: 40, icon: '👺', color: '#3498db' }
 ];
+
+function goToMenu() {
+    if (window.opener) {
+        window.close();
+    } else {
+        window.location.href = '../index.html';
+    }
+}
 
 function showModeSelect() {
     document.getElementById('startScreen').classList.remove('active');
@@ -70,6 +79,7 @@ function setupGame() {
     playerCrowns = 0;
     enemyCrowns = 0;
     currentElixir = 5;
+    enemyElixir = 5; // Reset elixir del bot
     activePlayer = 'player';
 
     playerTowers = [
@@ -168,14 +178,17 @@ function updateGame() {
     timerEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 
     currentElixir = Math.min(MAX_ELIXIR, currentElixir + ELIXIR_RATE);
+    enemyElixir = Math.min(MAX_ELIXIR, enemyElixir + ELIXIR_RATE); // Bot también regenera
 
-    // IA mejorada para modo bot
+    // IA mejorada con elixir limitado
     if (gameMode === 'bot') {
-        if (Math.random() < 0.02 && enemyHand.length > 0) {
-            const card = enemyHand[Math.floor(Math.random() * enemyHand.length)];
+        const playable = enemyHand.filter(c => enemyElixir >= c.cost);
+        if (playable.length > 0 && Math.random() < 0.02) {
+            const card = playable[Math.floor(Math.random() * playable.length)];
             const x = canvas.width - 150 + Math.random() * 50;
             const y = 100 + Math.random() * (canvas.height - 200);
             createUnit(card, x, y, 'enemy');
+            enemyElixir -= card.cost;
         }
     }
 
