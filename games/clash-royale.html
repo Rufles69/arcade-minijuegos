@@ -43,6 +43,13 @@
             .card { width: 60px; height: 80px; }
             .btn { width: 100%; max-width: 200px; }
         }
+
+        /* WebRTC status */
+        #webrtcStatus {
+            font-size: 0.6rem;
+            color: #ffd700;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -69,9 +76,11 @@
                 <label>Tu nombre: <input id="playerNameInput" maxlength="10" value="JUGADOR"></label>
                 <div class="buttons">
                     <button class="btn" onclick="selectMode('bot')">VS BOT</button>
-                    <button class="btn" onclick="selectMode('friend')">2 JUGADORES</button>
-                    <button class="btn btn-secondary" onclick="showStartScreen()">Volver</button>
+                    <button class="btn" onclick="selectMode('friend')">2 JUGADORES LOCAL</button>
+                    <button class="btn" onclick="selectMode('webrtc')">🔴 EN RED LOCAL</button>
+                    <button class="btn btn-secondary" onclick="window.location.href='index.html'">Volver al Menú Principal</button>
                 </div>
+                <div id="webrtcStatus"></div>
             </div>
 
             <div class="screen" id="gameOverScreen">
@@ -90,9 +99,15 @@
         <div class="cards-container" id="cardsContainer"></div>
         <div class="buttons">
             <button class="btn" id="startBtn" onclick="startGame()" style="display:none;">Iniciar Batalla</button>
-            <button class="btn btn-secondary" onclick="resetGame()">Volver al Menú</button>
+            <button class="btn btn-secondary" onclick="window.location.href='index.html'">Volver al Menú Principal</button>
         </div>
     </div>
+
+    <!-- Sonidos -->
+    <audio id="soundDeploy" src="https://www.myinstants.com/media/sounds/clash-royale-card-place.mp3" preload="auto"></audio>
+    <audio id="soundAttack" src="https://www.myinstants.com/media/sounds/clash-royale-attack.mp3" preload="auto"></audio>
+    <audio id="soundWin" src="https://www.myinstants.com/media/sounds/clash-royale-victory.mp3" preload="auto"></audio>
+    <audio id="soundLose" src="https://www.myinstants.com/media/sounds/clash-royale-defeat.mp3" preload="auto"></audio>
 
     <script src="clash-royales.js"></script>
 </body>

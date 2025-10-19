@@ -9,12 +9,28 @@ function resizeCanvas() {
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
+// Sonidos
+const sounds = {
+    deploy: document.getElementById('soundDeploy'),
+    attack: document.getElementById('soundAttack'),
+    win: document.getElementById('soundWin'),
+    lose: document.getElementById('soundLose')
+};
+
+function playSound(type) {
+    try {
+        sounds[type].currentTime = 0;
+        sounds[type].play();
+    } catch (e) {}
+}
+
 // UI
 const playerCrownsEl = document.getElementById('playerCrowns');
 const enemyCrownsEl = document.getElementById('enemyCrowns');
 const timerEl = document.getElementById('timer');
 const elixirFillEl = document.getElementById('elixirFill');
 const elixirCountEl = document.getElementById('elixirCount');
+const webrtcStatusEl = document.getElementById('webrtcStatus');
 
 // Estado
 let gameRunning = false;
@@ -36,7 +52,12 @@ let projectiles = [];
 let damagePopups = [];
 let playerHand = [];
 let enemyHand = [];
-let activePlayer = 'player'; // Para modo 2 jugadores
+let activePlayer = 'player'; // Para 2 jugadores locales
+
+// WebRTC
+let peer = null;
+let conn = null;
+let isHost = false;
 
 const deck = [
     { id: 'barbarian', cost: 5, health: 300, damage: 50, speed: 1.5, range: 40, icon: '🪓', color: '#e74c3c' },
@@ -52,18 +73,69 @@ function showModeSelect() {
     document.getElementById('modeSelectScreen').classList.add('active');
 }
 
-function showStartScreen() {
-    document.getElementById('modeSelectScreen').classList.remove('active');
-    document.getElementById('startScreen').classList.add('active');
-}
-
 function selectMode(mode) {
     gameMode = mode;
     playerName = document.getElementById('playerNameInput').value || 'JUGADOR';
-    enemyName = mode === 'bot' ? 'BOT' : 'JUGADOR 2';
+    enemyName = mode === 'bot' ? 'BOT' : mode === 'friend' ? 'JUGADOR 2' : 'RIVAL';
+
+    if (mode === 'webrtc') {
+        initWebRTC();
+        return;
+    }
+
     document.getElementById('modeSelectScreen').classList.remove('active');
     document.getElementById('startBtn').style.display = 'inline-block';
     setupGame();
+}
+
+function initWebRTC() {
+    webrtcStatusEl.textContent = "🔴 Iniciando conexión local...";
+
+    // PeerJS desde CDN
+    const script = document.createElement('script');
+    script.src = "https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js";
+    script.onload = () => {
+        peer = new Peer();
+
+        peer.on('open', id => {
+            webrtcStatusEl.textContent = `🔗 Tu ID: ${id} (comparte con tu amigo)`;
+        });
+
+        peer.on('connection', connection => {
+            conn = connection;
+            setupWebRTCConnection();
+        });
+
+        // Si ya tienes un ID en la URL
+        const urlId = new URLSearchParams(window.location.search).get('connect');
+        if (urlId) {
+            conn = peer.connect(urlId);
+            setupWebRTCConnection();
+        }
+    };
+    document.head.appendChild(script);
+}
+
+function setupWebRTCConnection() {
+    conn.on('open', () => {
+        webrtcStatusEl.textContent = "✅ Conectado en red local";
+        document.getElementById('startBtn').style.display = 'inline-block';
+        setupGame();
+    });
+
+    conn.on('data', data => {
+        if (data.type === 'card') {
+            const card = deck.find(c => c.id === data.cardId);
+            createUnit(card, canvas.width - 150 + Math.random() * 50, 100 + Math.random() * (canvas.height - 200), 'enemy');
+            playSound('deploy');
+        }
+    });
+}
+
+function sendCardToPeer(cardId) {
+    if (conn && conn.open) {
+        conn.send({ type: 'card', cardId });
+    }
 }
 
 function setupGame() {
@@ -76,6 +148,7 @@ function setupGame() {
     playerCrowns = 0;
     enemyCrowns = 0;
     currentElixir = 5;
+    activePlayer = 'player';
 
     // Torres
     playerTowers = [
@@ -118,11 +191,17 @@ function playCard(card) {
     const x = activePlayer === 'player' ? 100 + Math.random() * 50 : canvas.width - 150 + Math.random() * 50;
     const y = 100 + Math.random() * (canvas.height - 200);
     createUnit(card, x, y, activePlayer);
-    updateUI();
+    playSound('deploy');
+
+    if (gameMode === 'webrtc' && activePlayer === 'player') {
+        sendCardToPeer(card.id);
+    }
+
     if (gameMode === 'friend') {
         activePlayer = activePlayer === 'player' ? 'enemy' : 'player';
         renderCards();
     }
+    updateUI();
 }
 
 function createUnit(card, x, y, side) {
@@ -169,17 +248,24 @@ function updateGame() {
     const elapsed = Date.now() - gameStartTime;
     const remaining = Math.max(0, GAME_DURATION - elapsed);
     const minutes = Math.floor(remaining / 60000);
-        const seconds = Math.floor((remaining % 60000) / 1000);
+    const seconds = Math.floor((remaining % 60000) / 1000);
     timerEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 
-    // Regenerar elixir
     currentElixir = Math.min(MAX_ELIXIR, currentElixir + ELIXIR_RATE);
 
-    // Actualizar unidades
+    // IA mejorada para modo bot
+    if (gameMode === 'bot') {
+        if (Math.random() < 0.02 && enemyHand.length > 0) {
+            const card = enemyHand[Math.floor(Math.random() * enemyHand.length)];
+            const x = canvas.width - 150 + Math.random() * 50;
+            const y = 100 + Math.random() * (canvas.height - 200);
+            createUnit(card, x, y, 'enemy');
+        }
+    }
+
     updateUnits(playerUnits, enemyTowers);
     updateUnits(enemyUnits, playerTowers);
 
-    // Comprobar victoria/derrota
     const playerKing = playerTowers.find(t => t.type === 'king');
     const enemyKing = enemyTowers.find(t => t.type === 'king');
     if (playerKing.health <= 0) return endGame('lose');
@@ -198,6 +284,7 @@ function updateUnits(units, enemyTowers) {
         const dist = Math.hypot(unit.x - target.x, unit.y - target.y);
         if (dist < unit.range) {
             target.health -= unit.damage;
+            playSound('attack');
             createDamageEffect(target.x, target.y, unit.damage);
             units.splice(i, 1);
             if (target.health <= 0) {
@@ -218,20 +305,13 @@ function createDamageEffect(x, y, damage) {
 
 function drawGame() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Fondo
     ctx.fillStyle = '#0f3460';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Arena
     ctx.fillStyle = '#27ae60';
     ctx.fillRect(50, 50, canvas.width - 100, canvas.height - 100);
-
-    // Río
     ctx.fillStyle = '#3498db';
     ctx.fillRect(canvas.width / 2 - 30, 50, 60, canvas.height - 100);
 
-    // Torres
     [...playerTowers, ...enemyTowers].forEach(t => {
         if (t.health <= 0) return;
         ctx.fillStyle = t.type === 'king' ? '#e74c3c' : '#f39c12';
@@ -240,7 +320,6 @@ function drawGame() {
         ctx.fillRect(t.x - t.width / 2, t.y - t.height / 2 - 10, (t.health / t.maxHealth) * t.width, 5);
     });
 
-    // Unidades
     [...playerUnits, ...enemyUnits].forEach(u => {
         ctx.fillStyle = u.color;
         ctx.beginPath();
@@ -252,7 +331,6 @@ function drawGame() {
         ctx.fillText(u.icon, u.x, u.y + 5);
     });
 
-    // Daño
     damagePopups.forEach((p, i) => {
         ctx.fillStyle = '#ff6b6b';
         ctx.font = '12px Arial';
@@ -265,6 +343,7 @@ function drawGame() {
 
 function endGame(result) {
     gameRunning = false;
+    playSound(result === 'win' ? 'win' : 'lose');
     if (result === 'win') {
         document.getElementById('victoryCrowns').textContent = `${playerCrowns} - ${enemyCrowns}`;
         document.getElementById('victoryScreen').classList.add('active');
