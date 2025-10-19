@@ -9,28 +9,12 @@ function resizeCanvas() {
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
-// Sonidos
-const sounds = {
-    deploy: document.getElementById('soundDeploy'),
-    attack: document.getElementById('soundAttack'),
-    win: document.getElementById('soundWin'),
-    lose: document.getElementById('soundLose')
-};
-
-function playSound(type) {
-    try {
-        sounds[type].currentTime = 0;
-        sounds[type].play();
-    } catch (e) {}
-}
-
 // UI
 const playerCrownsEl = document.getElementById('playerCrowns');
 const enemyCrownsEl = document.getElementById('enemyCrowns');
 const timerEl = document.getElementById('timer');
 const elixirFillEl = document.getElementById('elixirFill');
 const elixirCountEl = document.getElementById('elixirCount');
-const webrtcStatusEl = document.getElementById('webrtcStatus');
 
 // Estado
 let gameRunning = false;
@@ -48,16 +32,10 @@ let playerUnits = [];
 let enemyUnits = [];
 let playerTowers = [];
 let enemyTowers = [];
-let projectiles = [];
 let damagePopups = [];
 let playerHand = [];
 let enemyHand = [];
-let activePlayer = 'player'; // Para 2 jugadores locales
-
-// WebRTC
-let peer = null;
-let conn = null;
-let isHost = false;
+let activePlayer = 'player';
 
 const deck = [
     { id: 'barbarian', cost: 5, health: 300, damage: 50, speed: 1.5, range: 40, icon: '🪓', color: '#e74c3c' },
@@ -76,66 +54,11 @@ function showModeSelect() {
 function selectMode(mode) {
     gameMode = mode;
     playerName = document.getElementById('playerNameInput').value || 'JUGADOR';
-    enemyName = mode === 'bot' ? 'BOT' : mode === 'friend' ? 'JUGADOR 2' : 'RIVAL';
-
-    if (mode === 'webrtc') {
-        initWebRTC();
-        return;
-    }
+    enemyName = mode === 'bot' ? 'BOT' : 'JUGADOR 2';
 
     document.getElementById('modeSelectScreen').classList.remove('active');
     document.getElementById('startBtn').style.display = 'inline-block';
     setupGame();
-}
-
-function initWebRTC() {
-    webrtcStatusEl.textContent = "🔴 Iniciando conexión local...";
-
-    // PeerJS desde CDN
-    const script = document.createElement('script');
-    script.src = "https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js";
-    script.onload = () => {
-        peer = new Peer();
-
-        peer.on('open', id => {
-            webrtcStatusEl.textContent = `🔗 Tu ID: ${id} (comparte con tu amigo)`;
-        });
-
-        peer.on('connection', connection => {
-            conn = connection;
-            setupWebRTCConnection();
-        });
-
-        // Si ya tienes un ID en la URL
-        const urlId = new URLSearchParams(window.location.search).get('connect');
-        if (urlId) {
-            conn = peer.connect(urlId);
-            setupWebRTCConnection();
-        }
-    };
-    document.head.appendChild(script);
-}
-
-function setupWebRTCConnection() {
-    conn.on('open', () => {
-        webrtcStatusEl.textContent = "✅ Conectado en red local";
-        document.getElementById('startBtn').style.display = 'inline-block';
-        setupGame();
-    });
-
-    conn.on('data', data => {
-        if (data.type === 'card') {
-            const card = deck.find(c => c.id === data.cardId);
-            createUnit(card, canvas.width - 150 + Math.random() * 50, 100 + Math.random() * (canvas.height - 200), 'enemy');
-            playSound('deploy');
-        }
-    });
-}
-
-function sendCardToPeer(cardId) {
-    if (conn && conn.open) {
-        conn.send({ type: 'card', cardId });
-    }
 }
 
 function setupGame() {
@@ -143,14 +66,12 @@ function setupGame() {
     enemyHand = [...deck.slice(0, 4)];
     playerUnits = [];
     enemyUnits = [];
-    projectiles = [];
     damagePopups = [];
     playerCrowns = 0;
     enemyCrowns = 0;
     currentElixir = 5;
     activePlayer = 'player';
 
-    // Torres
     playerTowers = [
         { x: 80, y: canvas.height / 2, width: 60, height: 80, health: 3000, maxHealth: 3000, type: 'king', side: 'player' },
         { x: 130, y: 120, width: 40, height: 60, health: 1500, maxHealth: 1500, type: 'princess', side: 'player' },
@@ -191,17 +112,12 @@ function playCard(card) {
     const x = activePlayer === 'player' ? 100 + Math.random() * 50 : canvas.width - 150 + Math.random() * 50;
     const y = 100 + Math.random() * (canvas.height - 200);
     createUnit(card, x, y, activePlayer);
-    playSound('deploy');
-
-    if (gameMode === 'webrtc' && activePlayer === 'player') {
-        sendCardToPeer(card.id);
-    }
+    updateUI();
 
     if (gameMode === 'friend') {
         activePlayer = activePlayer === 'player' ? 'enemy' : 'player';
         renderCards();
     }
-    updateUI();
 }
 
 function createUnit(card, x, y, side) {
@@ -284,7 +200,6 @@ function updateUnits(units, enemyTowers) {
         const dist = Math.hypot(unit.x - target.x, unit.y - target.y);
         if (dist < unit.range) {
             target.health -= unit.damage;
-            playSound('attack');
             createDamageEffect(target.x, target.y, unit.damage);
             units.splice(i, 1);
             if (target.health <= 0) {
@@ -343,7 +258,6 @@ function drawGame() {
 
 function endGame(result) {
     gameRunning = false;
-    playSound(result === 'win' ? 'win' : 'lose');
     if (result === 'win') {
         document.getElementById('victoryCrowns').textContent = `${playerCrowns} - ${enemyCrowns}`;
         document.getElementById('victoryScreen').classList.add('active');
